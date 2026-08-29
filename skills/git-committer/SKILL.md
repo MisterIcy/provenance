@@ -1,9 +1,15 @@
 ---
 name: git-committer
 description: Discovers the current git diff, groups related changes into logically separate commits, and writes Conventional Commits-formatted messages in plain developer-readable language (personalized to the project author's style if git-committer-setup has been run). Use when the user asks to commit changes, split their working tree into commits, or write commit messages.
+when_to_use: Also trigger when wrapping up a work session, finishing a task, or switching to something else and the working tree has uncommitted changes worth capturing — e.g. "I'm done for now", "let's wrap up", "before I switch tasks", not just an explicit "commit this" request.
 argument-hint: "[optional: focus hint, e.g. a path or theme to prioritize]"
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git add:*) Bash(git apply:*) Bash(git commit:*) Read Write
+model: inherit
+effort: medium
+context: fork
+agent: general-purpose
+background: false
 ---
 
 # git-committer

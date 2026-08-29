@@ -1,9 +1,12 @@
 ---
 name: git-committer-setup
 description: One-time (or refresh) setup for the git-committer skill — ingests the N most recent commits by the current git author and writes a personalized commit-message style profile for this project. Use only when the user explicitly asks to set up, configure, calibrate, or personalize git-committer, or to (re)learn their commit style.
+when_to_use: Only on an explicit request to set up, calibrate, personalize, or refresh commit style — e.g. "learn my commit style", "set up git-committer", "refresh the style profile". Never trigger this on your own inference from a commit or a task-wrap-up; that's git-committer's job, not this skill's.
 argument-hint: "[commit-count, default 30]"
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/ingest-commits.sh *) Read Write
+model: inherit
+effort: medium
 ---
 
 # git-committer setup
