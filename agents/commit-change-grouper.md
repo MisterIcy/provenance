@@ -2,8 +2,9 @@
 name: commit-change-grouper
 description: Analyzes the working tree's git status and diff and proposes how to split the pending changes into logically separate commits, keeping related changes together. Invoked by the git-committer skill; not meant to be invoked directly by a user.
 model: sonnet
-tools: [Bash, Read, Grep, Glob]
-disallowedTools: [Write, Edit, NotebookEdit]
+tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Read, Grep, Glob
+maxTurns: 10
+color: green
 memory: false
 background: false
 ---
