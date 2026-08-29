@@ -30,9 +30,8 @@ Add this repository as a plugin marketplace source in Claude Code and install th
 ## Repository layout
 
 ```
-skills/                    # user-facing skills (git-committer, git-committer-setup)
+skills/                    # user-facing skills (git-committer, git-committer-setup, skill-creator)
 agents/                    # subagents invoked by the git-committer skill
-.claude/skills/skill-creator/  # vendored meta-skill for authoring skills
 .claude-plugin/            # plugin/marketplace manifests
 .github/workflows/         # release automation (milestone-triggered)
 ```
