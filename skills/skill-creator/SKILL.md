@@ -5,6 +5,13 @@ license: Apache-2.0
 metadata:
   author: Alexandros Koutroulis
   version: "0.1"
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/validate_frontmatter.py *)
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "${CLAUDE_SKILL_DIR}/scripts/validate_frontmatter.py"
 ---
 
 ## What this skill does
@@ -44,7 +51,9 @@ This skill only carries the *authoring* workflow inline. Deep spec detail lives 
    - If the skill is Claude-Code-only, extra fields (`disable-model-invocation`, `user-invocable`, `allowed-tools`, `context: fork`, `arguments`, `paths`, `hooks`, etc.) are fair game — see `references/claude-code-extensions.md`.
    - If the skill must also work unmodified outside Claude Code (claude.ai upload, Skills API, other agentskills.io clients), restrict frontmatter to the six spec fields: `name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`. Anything else causes a hard validation error on those paths.
 
-7. **Validate before calling it done** — walk `references/checklist.md`. At minimum: frontmatter keys/casing correct, name matches directory, description has both "what" and "when", body under the size guideline, all relative links resolve, no secrets/credentials embedded, scripts are self-contained with error handling.
+7. **Validate before calling it done.**
+   - Run `${CLAUDE_SKILL_DIR}/scripts/validate_frontmatter.py <path-to-new-SKILL.md>` — checks frontmatter against the spec/CC rules above (name format + directory match, description presence/length, field types, unknown keys, etc.) and exits non-zero if anything's wrong. This also runs automatically as a `PostToolUse` hook while this skill is active, so an `Edit`/`Write` to any `SKILL.md` gets checked as you go — but the script only catches what's mechanically checkable; it doesn't replace judgment calls.
+   - Then walk `references/checklist.md` for everything else: body under the size guideline, all relative links resolve, no secrets/credentials embedded, scripts are self-contained with error handling, and the sanity-test questions at the bottom.
 
 8. **Report what you built**: skill path, how it's invoked (auto-match on description, or `/skill-name` in Claude Code), and any manual step needed (e.g. restart to pick up a new top-level skills dir).
 
@@ -53,7 +62,12 @@ This skill only carries the *authoring* workflow inline. Deep spec detail lives 
 - `references/agent-skills-spec.md` — full open agentskills.io specification (frontmatter fields, constraints, progressive disclosure model, validation)
 - `references/claude-code-extensions.md` — Claude Code-specific frontmatter fields, skill locations/precedence, invocation control, string substitutions, dynamic context injection
 - `references/checklist.md` — pre-flight checklist to run before declaring a skill done
+- `scripts/validate_frontmatter.py` — validates a `SKILL.md`'s frontmatter against the spec/CC rules; also wired as this skill's own `PostToolUse` hook (see frontmatter)
 - `assets/SKILL.template.md` — copy-paste starting point for a new `SKILL.md`
+
+## A note on this skill's own portability
+
+This skill's frontmatter uses `allowed-tools` and `hooks` — the latter is Claude Code-only, so *this skill itself* is no longer portable to claude.ai/Skills API uploads unmodified (it would need `hooks` stripped first). That's a deliberate trade-off for the self-checking hook; it doesn't change the portability guidance this skill gives about the skills *it* helps you author.
 
 ## Common mistakes to avoid
 
