@@ -1,14 +1,14 @@
 {
-    "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-    "name": "provenance",
-    "version": "0.1.0",
-    "description": "Skills and agents for building Agent Skills, and for generating well-split, Conventional Commits-formatted git commits.",
-    "author": {
-        "name": "Alexandros Koutroulis",
-        "url": "https://mistericy.github.io/"
-    },
-    "homepage": "https://github.com/mistericy/provenance",
-    "repository": "https://github.com/MisterIcy/provenance.git",
-    "license": "Apache-2.0",
-    "keywords": []
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "provenance",
+  "version": "0.1.0",
+  "description": "Skills and agents for building Agent Skills, and for generating well-split, Conventional Commits-formatted git commits.",
+  "author": {
+    "name": "Alexandros Koutroulis",
+    "url": "https://mistericy.github.io/"
+  },
+  "homepage": "https://github.com/mistericy/provenance",
+  "repository": "https://github.com/MisterIcy/provenance.git",
+  "license": "Apache-2.0",
+  "keywords": []
 }
