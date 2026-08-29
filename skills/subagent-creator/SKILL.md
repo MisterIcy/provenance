@@ -6,7 +6,7 @@ license: Apache-2.0
 metadata:
   author: Alexandros Koutroulis
   version: "0.1"
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/validate_agent_frontmatter.py *), Agent(subagent-job-clarifier)
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/validate_agent_frontmatter.py *), Agent(subagent-job-clarifier, subagent-tool-scoper)
 hooks:
   PostToolUse:
     - matcher: "Edit|Write"
@@ -43,12 +43,13 @@ This skill only carries the authoring workflow inline. Full spec detail lives in
    - Lowercase letters, digits, hyphens only; cannot start with `-`; cannot contain `:` (reserved for plugin namespacing)
    - Unique within its scope — a same-name project agent silently shadows a personal one
 
-4. **Scope the tools explicitly — never leave `tools`/`disallowedTools` both unset.** Omitting both silently inherits every tool available to subagents; that's almost never the right call for a narrow specialist and hides what the agent can actually do. Work out the list from the agent's job (step 1), and confirm it with the user via `AskUserQuestion` whenever the right scope isn't obvious from the job description:
+4. **Scope the tools explicitly — never leave `tools`/`disallowedTools` both unset.** Omitting both silently inherits every tool available to subagents; that's almost never the right call for a narrow specialist and hides what the agent can actually do. Delegate to the `subagent-tool-scoper` agent (`Agent(subagent-tool-scoper)`), handing it the job spec from step 1 (responsibility, access tier, complexity, cross-agent needs) plus, if reviewing an existing agent, its current `tools`/`disallowedTools` value. It reads `references/tools-reference.md` and `references/subagent-spec.md` and returns a recommended `tools`/`disallowedTools` value with rationale, asking the user via `AskUserQuestion` itself if the right scope is genuinely ambiguous. It follows the same tiering this step used to apply inline:
    - Read-only analyzer/reviewer → `tools: Read, Grep, Glob` (+ `Bash` only if it genuinely needs to run read-only commands)
    - Reads and drafts/writes (e.g. writes a message, a report, a doc, but doesn't touch the target repo's real files) → add `Write`/`Edit` scoped to its own draft output
    - Needs to mutate the working tree or run arbitrary commands → add `Write`/`Edit`/`Bash` explicitly — this is the destructive tier, grant it deliberately
    - Prefer an explicit `tools` allowlist over `disallowedTools` for anything narrow; use `disallowedTools` only to strip one or two specific tools from an otherwise-intentional full-inheritance case
-   - **Multi-agent tools** (see `references/tools-reference.md`): if this agent needs to spawn or hand off to other specific agents, add `Agent(agent-name-1, agent-name-2)` — never a bare `Agent`, which allows spawning anything. If it needs to discover what agents/sessions are addressable (e.g. to resume one or message a teammate), add `ListAgents`. If it needs to message another agent, teammate, or session directly, add `SendMessage`. Only add these when the job actually requires cross-agent coordination — most single-purpose specialists need none of them.
+   - **Multi-agent tools**: if this agent needs to spawn or hand off to other specific agents, add `Agent(agent-name-1, agent-name-2)` — never a bare `Agent`, which allows spawning anything. If it needs to discover what agents/sessions are addressable (e.g. to resume one or message a teammate), add `ListAgents`. If it needs to message another agent, teammate, or session directly, add `SendMessage`. Only add these when the job actually requires cross-agent coordination — most single-purpose specialists need none of them.
+   Carry its recommended `tools`/`disallowedTools` value forward into step 10's frontmatter; if it reports open questions or flags a mismatch (when reviewing an existing agent), resolve those with the user before proceeding.
 
 5. **Set `maxTurns` — don't leave it unset.** An unset `maxTurns` lets the agent run indefinitely, burning tokens on jobs that should have stopped. Scale it to the job identified in step 1:
    - **5** — one-shot jobs (single lookup, single file write, single message draft)
