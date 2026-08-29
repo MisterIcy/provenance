@@ -11,7 +11,6 @@
   "repository": "https://github.com/MisterIcy/provenance.git",
   "license": "Apache-2.0",
   "keywords": [],
-  "hooks": "./hooks/hooks.json",
   "userConfig": {
     "pr_sync_enabled": {
       "type": "boolean",
