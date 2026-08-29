@@ -57,13 +57,17 @@ This skill only carries the *authoring* workflow inline. Deep spec detail lives 
 
 8. **Report what you built**: skill path, how it's invoked (auto-match on description, or `/skill-name` in Claude Code), and any manual step needed (e.g. restart to pick up a new top-level skills dir).
 
+9. **Offer to set up evals** (optional, skip for trivial/throwaway skills) — a small `evals/evals.json` of 2-3 realistic test prompts with expected outputs, so skill quality can be checked with-vs-without the skill instead of by one manual try. See `references/evaluating-skills.md`.
+
 ## References
 
 - `references/agent-skills-spec.md` — full open agentskills.io specification (frontmatter fields, constraints, progressive disclosure model, validation)
 - `references/claude-code-extensions.md` — Claude Code-specific frontmatter fields, skill locations/precedence, invocation control, string substitutions, dynamic context injection
 - `references/checklist.md` — pre-flight checklist to run before declaring a skill done
+- `references/evaluating-skills.md` — designing eval test cases, running with/without-skill comparisons, grading, iterating
 - `scripts/validate_frontmatter.py` — validates a `SKILL.md`'s frontmatter against the spec/CC rules; also wired as this skill's own `PostToolUse` hook (see frontmatter)
 - `assets/SKILL.template.md` — copy-paste starting point for a new `SKILL.md`
+- `evals/evals.json` — this skill's own eval test cases (see `references/evaluating-skills.md`)
 
 ## A note on this skill's own portability
 

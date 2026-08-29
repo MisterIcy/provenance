@@ -1,0 +1,42 @@
+{
+  "skill_name": "skill-creator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "hey can you make me a skill for turning a folder of screenshots into a single PDF, i keep doing this by hand",
+      "expected_output": "A new skill directory (e.g. screenshots-to-pdf/) with a SKILL.md whose frontmatter name matches the directory, a description stating both what the skill does and when to use it, and a body with concrete steps for combining a folder of screenshots into one PDF.",
+      "assertions": [
+        "A new skill directory was created containing a SKILL.md file",
+        "SKILL.md frontmatter `name` matches its parent directory name exactly",
+        "SKILL.md frontmatter `description` states both what the skill does and when to use it, with concrete trigger keywords",
+        "Running scripts/validate_frontmatter.py against the new SKILL.md exits 0 with no ERROR lines",
+        "The skill body gives concrete, ordered steps for converting a folder of screenshots into a single PDF, not just a restatement of the request"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Scaffold a Claude Code-only skill at skills/api-diff-checker/ that compares two OpenAPI specs and reports breaking changes. It should only ever be triggered manually via /api-diff-checker, never auto-invoked by Claude.",
+      "expected_output": "A skill at skills/api-diff-checker/SKILL.md with disable-model-invocation: true, name matching the directory, a description covering the OpenAPI-diff task, and a body describing how it detects and reports breaking changes between two specs.",
+      "assertions": [
+        "SKILL.md is created at exactly skills/api-diff-checker/SKILL.md",
+        "Frontmatter includes `disable-model-invocation: true`",
+        "Frontmatter `name` equals `api-diff-checker`",
+        "The skill explains it must be invoked via `/api-diff-checker` and will not be auto-triggered",
+        "Running scripts/validate_frontmatter.py against the new SKILL.md exits 0 with no ERROR lines"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "This skill I found isn't loading right in Claude Code, can you check what's wrong with it and fix it?",
+      "files": ["evals/files/broken-skill/SKILL.md"],
+      "expected_output": "An explanation of the specific frontmatter violations (invalid name format, name not matching its directory, missing description, an unrecognized frontmatter key) and a corrected SKILL.md that passes validation.",
+      "assertions": [
+        "Response identifies that `name: PDF_Helper--Tool` violates the lowercase-alphanumeric-and-single-hyphen naming rule",
+        "Response identifies that `name` does not match the parent directory name",
+        "Response identifies that `description` is missing or empty",
+        "Response flags `argument_hint` as an unrecognized/misspelled key (should be `argument-hint`)",
+        "The corrected SKILL.md, run through scripts/validate_frontmatter.py, exits 0 with no ERROR lines"
+      ]
+    }
+  ]
+}
