@@ -3,6 +3,7 @@
 Run through before calling a skill done.
 
 ## Frontmatter
+- [ ] Run `scripts/validate_frontmatter.py <path-to-SKILL.md>` — catches the mechanical checks below automatically
 - [ ] `name` present, 1–64 chars, lowercase unicode alnum + hyphens only, no leading/trailing/double hyphen
 - [ ] `name` matches the parent directory name exactly
 - [ ] `description` present, 1–1024 chars, states both what and when, includes concrete trigger keywords
