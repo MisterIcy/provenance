@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "respectGitignore": true,
+  "env": {
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "includeCoAuthoredBy": true,
+  "includeGitInstructions": false,
+  "model": "claude-sonnet-5",
+  "availableModels": [
+    "claude-sonnet-5[1m]",
+    "claude-sonnet-5",
+    "claude-sonnet-4-8",
+    "claude-opus-4-8",
+    "haiku"
+  ],
+  "hooks": {},
+  "defaultShell": "bash",
+  "outputStyle": "Concise",
+  "viewMode": "focus",
+  "spinnerTipsEnabled": false,
+  "effortLevel": "medium",
+  "fastMode": false,
+  "fastModePerSessionOptIn": true,
+  "showClearContextOnPlanAccept": true,
+  "askUserQuestionTimeout": "never",
+  "plansDirectory": "docs/plans/",
+  "prefersReducedMotion": true,
+  "autoMemoryEnabled": true,
+  "showThinkingSummaries": true,
+  "preferredNotifChannel": "auto",
+  "showTurnDuration": true,
+  "terminalProgressBarEnabled": true,
+  "teammateMode": "tmux",
+  "autoConnectIde": true,
+  "autoInstallIdeExtension": true
+}
