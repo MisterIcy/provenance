@@ -6,7 +6,7 @@ license: Apache-2.0
 metadata:
   author: Alexandros Koutroulis
   version: "0.1"
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/validate_agent_frontmatter.py *), Agent(subagent-job-clarifier, subagent-tool-scoper)
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/validate_agent_frontmatter.py *), Agent(subagent-job-clarifier, subagent-tool-scoper, subagent-body-writer)
 hooks:
   PostToolUse:
     - matcher: "Edit|Write"
@@ -25,13 +25,13 @@ This skill only carries the authoring workflow inline. Full spec detail lives in
 
 ## Workflow
 
-1. **Clarify the job.** Before writing anything, delegate to the `subagent-job-clarifier` agent (`Agent(subagent-job-clarifier)`) unless the specialization and every fact below is already unambiguous from `$ARGUMENTS`/context. Hand it whatever's already known (the specialization, any surrounding context); it interviews the user via `AskUserQuestion` for whatever's missing and returns a structured spec covering:
+1. **Clarify the job.** Before writing anything, delegate to the `subagent-job-clarifier` agent (`Agent(subagent-job-clarifier)`) unless the specialization and every fact below is already unambiguous from `$ARGUMENTS`/context. Hand it whatever's already known (the specialization, any surrounding context); it cannot ask the user directly (subagents can't use `AskUserQuestion`), so it reasons over what it's given and returns a structured spec covering:
    - The single, narrow responsibility this agent owns (a grab-bag "does everything" agent won't get delegated to reliably — its description can't be specific)
    - What triggers delegation to it — concrete phrases the `description` needs to contain (e.g. "use proactively after code changes", "use when the user asks to audit X")
    - What it needs to touch — read-only analysis, read+draft/write, or destructive/mutating actions. This decides tool scope (step 4) and color (step 6)
    - Whether it's a one-shot job, a medium multi-step task, or a long/complex investigation. This decides `maxTurns` (step 5)
    - Whether it needs to call other agents, or be called by name from elsewhere. This decides the multi-agent tools in step 4
-   Carry its returned spec forward into steps 2–11; if it reports open questions, resolve those with the user directly before proceeding.
+   Carry its returned spec forward into steps 2–11; **you** ask the user via `AskUserQuestion` about every entry in its `Open questions` output before proceeding — the agent can't do that itself.
 
 2. **Decide placement — this is the step most likely to go wrong.** Ask if not already clear:
    - **`.claude/agents/` (project)** — shared with the team, checked into version control, scoped to this repo. Default choice for anything project-specific.
@@ -43,7 +43,7 @@ This skill only carries the authoring workflow inline. Full spec detail lives in
    - Lowercase letters, digits, hyphens only; cannot start with `-`; cannot contain `:` (reserved for plugin namespacing)
    - Unique within its scope — a same-name project agent silently shadows a personal one
 
-4. **Scope the tools explicitly — never leave `tools`/`disallowedTools` both unset.** Omitting both silently inherits every tool available to subagents; that's almost never the right call for a narrow specialist and hides what the agent can actually do. Delegate to the `subagent-tool-scoper` agent (`Agent(subagent-tool-scoper)`), handing it the job spec from step 1 (responsibility, access tier, complexity, cross-agent needs) plus, if reviewing an existing agent, its current `tools`/`disallowedTools` value. It reads `references/tools-reference.md` and `references/subagent-spec.md` and returns a recommended `tools`/`disallowedTools` value with rationale, asking the user via `AskUserQuestion` itself if the right scope is genuinely ambiguous. It follows the same tiering this step used to apply inline:
+4. **Scope the tools explicitly — never leave `tools`/`disallowedTools` both unset.** Omitting both silently inherits every tool available to subagents; that's almost never the right call for a narrow specialist and hides what the agent can actually do. Delegate to the `subagent-tool-scoper` agent (`Agent(subagent-tool-scoper)`), handing it the job spec from step 1 (responsibility, access tier, complexity, cross-agent needs) plus, if reviewing an existing agent, its current `tools`/`disallowedTools` value. It reads `references/tools-reference.md` and `references/subagent-spec.md` and returns a recommended `tools`/`disallowedTools` value with rationale, plus a list of open questions for anything genuinely ambiguous — it can't ask the user itself (subagents can't use `AskUserQuestion`), so **you** ask via `AskUserQuestion` about each one before finalizing. It follows the same tiering this step used to apply inline:
    - Read-only analyzer/reviewer → `tools: Read, Grep, Glob` (+ `Bash` only if it genuinely needs to run read-only commands)
    - Reads and drafts/writes (e.g. writes a message, a report, a doc, but doesn't touch the target repo's real files) → add `Write`/`Edit` scoped to its own draft output
    - Needs to mutate the working tree or run arbitrary commands → add `Write`/`Edit`/`Bash` explicitly — this is the destructive tier, grant it deliberately
@@ -69,7 +69,7 @@ This skill only carries the authoring workflow inline. Full spec detail lives in
 
 9. **Pick a model.** Prefer an alias (`sonnet`/`opus`/`haiku`/`fable`) over a full model ID, or omit the field entirely (defaults to `inherit` — same model as the calling session). Pin a full ID only when there's a concrete reason (cost-sensitive high-volume agent → `haiku`; needs the strongest reasoning → `opus`).
 
-10. **Write the body.** The body is the subagent's **entire** system prompt — it does not inherit Claude Code's main system prompt, tone guidance, or any of this conversation's context. State explicitly: its job, expected inputs, output shape, and boundaries (what it must never do — e.g. "read-only, never runs git commands", "never contacts external services"). Use `assets/AGENT.template.md` as a starting point.
+10. **Write the body.** The body is the subagent's **entire** system prompt — it does not inherit Claude Code's main system prompt, tone guidance, or any of this conversation's context. Delegate to the `subagent-body-writer` agent (`Agent(subagent-body-writer)`), handing it the fully-decided job spec from steps 1-9 (responsibility, description/triggers, access tier, tools/disallowedTools, maxTurns, cross-agent needs, target model). It self-discovers house-style references (`assets/AGENT.template.md` and existing `agents/*.md` files) and returns 2-3 candidate bodies, each tuned to the target model's conventions, plus any assumptions or open questions. Review the candidates, pick or merge one (asking the user via `AskUserQuestion` if the choice or an open question isn't yours to make unilaterally), and write the result into the agent file yourself — the agent never writes the file. Every candidate must state explicitly: its job, expected inputs, output shape, and boundaries (what it must never do — e.g. "read-only, never runs git commands", "never contacts external services", "cannot ask the user directly").
 
 11. **Write the description last, tune it hardest.** This is the single field automatic delegation reads. It must say *when* to use this agent with concrete trigger phrases, and implicitly *when not to* — check it doesn't overlap with an existing agent's triggers at the same scope (overlapping descriptions cause flaky, unpredictable delegation between the two).
 
