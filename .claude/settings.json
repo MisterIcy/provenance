@@ -6,8 +6,8 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "attribution": {
-    "commit": "",
-    "pr": "",
+    "commit": "Co-Authored-By: Claude Code <claude@anthropic.ai>",
+    "pr": "Produced by Provenance plugin for Claude Code (https://github.com/mistericy/provenance)",
     "sessionUrl": false
   },
   "includeCoAuthoredBy": true,
