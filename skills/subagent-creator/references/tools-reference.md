@@ -4,7 +4,9 @@ Source: https://code.claude.com/docs/en/tools-reference — condensed for tool-s
 
 ## Read-only tools (safe for a `green` agent)
 
-`Glob`, `Grep`, `Read`, `CronList`, `TaskList`, `TaskGet`, `LSP`, `ListAgents`, `ListMcpResourcesTool`, `WebSearch`, `WebFetch`, `ReadMcpResourceTool`, `ReportFindings`, `ScheduleWakeup`, `SendFeedback`, `AskUserQuestion`
+`Glob`, `Grep`, `Read`, `CronList`, `TaskList`, `TaskGet`, `LSP`, `ListAgents`, `ListMcpResourcesTool`, `WebSearch`, `WebFetch`, `ReadMcpResourceTool`, `ReportFindings`, `ScheduleWakeup`, `SendFeedback`
+
+**`AskUserQuestion` is main-session-only — never grant it to a subagent.** A subagent spawned via the `Agent` tool cannot use it; if a subagent's `tools` list resolves to only `AskUserQuestion` (or is otherwise empty after resolution), Claude Code refuses to spawn it outright ("would be spawned with zero tools"). A subagent that needs user input for an ambiguous decision must instead surface it as an "open question" in its returned output, and the *caller* (the orchestrating skill or main-session agent, which can call `AskUserQuestion`) asks the user directly and resolves it before proceeding.
 
 ## Mutating tools (push an agent toward `yellow` or `red`)
 
