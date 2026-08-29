@@ -2,7 +2,9 @@
 name: commit-message-writer
 description: Writes a single Conventional Commits-formatted commit message (subject + body) for one already-decided group of changes, in the project's learned voice when available. Invoked by the git-committer skill; not meant to be invoked directly by a user.
 model: haiku
-tools: [Read]
+tools: Read(**/conventional-commits.md), Read(**/style-voice-guidelines.md), Read(**/git-committer-style.md)
+maxTurns: 5
+color: green
 memory: false
 background: false
 ---
