@@ -18,7 +18,7 @@ Releases are cut via GitHub Actions (`.github/workflows/release.yml`), triggered
 
 ## Architecture
 
-The plugin ships two skills, each with its own subagents/scripts, plus a vendored third-party-style skill:
+The plugin ships three skills: two for git workflow automation, plus a meta-skill for authoring other skills:
 
 - **`skills/git-committer/`** — the main entry point. `SKILL.md` orchestrates a two-subagent pipeline to turn the working tree into Conventional-Commits-formatted commits:
   1. `agents/commit-change-grouper.md` (read-only, sonnet) — inspects `git status`/`git diff` and proposes how to split pending changes into logical commit groups. It never touches git state.
@@ -27,7 +27,7 @@ The plugin ships two skills, each with its own subagents/scripts, plus a vendore
 
 - **`skills/git-committer-setup/`** — one-time/refresh companion skill. Runs `ingest-commits.sh` to sample the current author's recent commits and writes a personalized voice profile to `.claude/git-committer-style.md` (gitignored/local, not committed here), which `git-committer` picks up automatically. Only triggers on an explicit user request — never inferred.
 
-- **`.claude/skills/skill-creator/`** — a vendored meta-skill for scaffolding and validating *other* Agent Skills (per the open agentskills.io spec, with a `references/claude-code-extensions.md` doc for CC-specific frontmatter). Used when authoring new skills in this or other repos, not part of the git-committer pipeline itself.
+- **`skills/skill-creator/`** — a meta-skill for scaffolding and validating other Agent Skills (per the open agentskills.io spec, with a `references/claude-code-extensions.md` doc for CC-specific frontmatter). Now shipped as a first-class plugin skill, available wherever the `provenance` plugin is installed. Use it when authoring new skills in any repository.
 
 ### Key conventions across the skill/agent files
 
