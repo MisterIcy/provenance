@@ -2,8 +2,7 @@
 name: pr-drift-analyzer
 description: Compares an open pull request's title/description against its actual current diff and commit history, and reports whether the description has drifted from what the code now does. Invoked by the pr-description-sync skill; not meant to be invoked directly by a user.
 model: sonnet
-tools: [Bash, Read, Grep, Glob, SendMessage, ListAgents]
-disallowedTools: [Write, Edit, NotebookEdit]
+tools: Bash(gh pr view *), Bash(gh pr diff *), Bash(git log *), Read, Grep, Glob
 memory: false
 background: false
 maxTurns: 8
