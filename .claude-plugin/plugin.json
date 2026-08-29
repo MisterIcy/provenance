@@ -10,5 +10,14 @@
   "homepage": "https://github.com/mistericy/provenance",
   "repository": "https://github.com/MisterIcy/provenance.git",
   "license": "Apache-2.0",
-  "keywords": []
+  "keywords": [],
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "pr_sync_enabled": {
+      "type": "boolean",
+      "title": "Auto-sync PR description after push",
+      "description": "After a git push on a branch with an open PR, check whether the PR's title/description has drifted from the actual changes and offer to update it via the pr-description-sync skill. Off by default since it inspects and can edit a shared, visible PR.",
+      "default": false
+    }
+  }
 }
