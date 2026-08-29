@@ -11,7 +11,7 @@
       "name": "provenance",
       "source": "./",
       "description": "Skills and agents for building Agent Skills, and for generating well-split, Conventional Commits-formatted git commits.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Alexandros Koutroulis",
         "url": "https://mistericy.github.io/"

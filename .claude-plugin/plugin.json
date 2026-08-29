@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "provenance",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Skills and agents for building Agent Skills, and for generating well-split, Conventional Commits-formatted git commits.",
   "author": {
     "name": "Alexandros Koutroulis",
