@@ -3,26 +3,24 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "hey can you make me a skill for turning a folder of screenshots into a single PDF, i keep doing this by hand",
-      "expected_output": "A new skill directory (e.g. screenshots-to-pdf/) with a SKILL.md whose frontmatter name matches the directory, a description stating both what the skill does and when to use it, and a body with concrete steps for combining a folder of screenshots into one PDF.",
+      "prompt": "I want a skill called release-notes-writer that summarizes merged PRs into release notes. It has to work if we upload it straight to claude.ai later, but I also want it locked down so Claude never auto-runs it — only triggered manually via /release-notes-writer.",
+      "expected_output": "An explanation that `disable-model-invocation` is a Claude Code-only extension field, not one of the six portable agentskills.io spec fields, so 'strictly portable to claude.ai' and 'manual-invoke-only via disable-model-invocation' can't both be satisfied by the same frontmatter. The response should resolve the tension explicitly (e.g. pick portability and drop the manual-invoke lock, or pick CC-only and add the field) rather than silently doing both.",
       "assertions": [
-        "A new skill directory was created containing a SKILL.md file",
-        "SKILL.md frontmatter `name` matches its parent directory name exactly",
-        "SKILL.md frontmatter `description` states both what the skill does and when to use it, with concrete trigger keywords",
-        "Running scripts/validate_frontmatter.py against the new SKILL.md exits 0 with no ERROR lines",
-        "The skill body gives concrete, ordered steps for converting a folder of screenshots into a single PDF, not just a restatement of the request"
+        "Response explicitly identifies `disable-model-invocation` as a Claude Code-only extension field, not one of the six portable spec fields (name, description, license, compatibility, metadata, allowed-tools)",
+        "Response states that satisfying both 'must work uploaded to claude.ai unmodified' and 'manual-invoke-only via disable-model-invocation' is not simultaneously achievable with a single frontmatter block, and offers the user a choice rather than silently picking one",
+        "If a SKILL.md is produced with portability prioritized, its frontmatter is restricted to the six spec fields and does not include disable-model-invocation",
+        "Running scripts/validate_frontmatter.py against the produced SKILL.md exits 0 with no ERROR lines"
       ]
     },
     {
       "id": 2,
-      "prompt": "Scaffold a Claude Code-only skill at skills/api-diff-checker/ that compares two OpenAPI specs and reports breaking changes. It should only ever be triggered manually via /api-diff-checker, never auto-invoked by Claude.",
-      "expected_output": "A skill at skills/api-diff-checker/SKILL.md with disable-model-invocation: true, name matching the directory, a description covering the OpenAPI-diff task, and a body describing how it detects and reports breaking changes between two specs.",
+      "prompt": "We want one skill for our whole PR lifecycle so it's easy to remember — call it pr-pipeline. It should pull open PRs, write review comments, merge them once approved, and then kick off our deploy job.",
+      "expected_output": "An explanation that 'review, merge, and deploy' are distinct jobs with different risk profiles — reviewing/commenting is safe to auto-invoke, while merging and deploying are side-effecting actions that should require manual/disable-model-invocation triggers — and a recommendation to split into separate skills (e.g. pr-review-commenter, pr-merger, deploy-trigger) rather than one undifferentiated pr-pipeline skill.",
       "assertions": [
-        "SKILL.md is created at exactly skills/api-diff-checker/SKILL.md",
-        "Frontmatter includes `disable-model-invocation: true`",
-        "Frontmatter `name` equals `api-diff-checker`",
-        "The skill explains it must be invoked via `/api-diff-checker` and will not be auto-triggered",
-        "Running scripts/validate_frontmatter.py against the new SKILL.md exits 0 with no ERROR lines"
+        "Response identifies that reviewing, merging, and deploying are distinct jobs with different risk/invocation profiles rather than treating them as one uniform task",
+        "Response recommends splitting into multiple separate skills/directories rather than scaffolding a single pr-pipeline skill covering all stages",
+        "If any frontmatter is proposed, it does not apply one invocation policy (e.g. auto-invoke) uniformly across the safe review step and the destructive merge/deploy steps",
+        "Response's reasoning explicitly references why bundling is risky (mixed side-effects/invocation needs), not just an assertion that 'it should be split' without justification"
       ]
     },
     {
@@ -36,6 +34,66 @@
         "Response identifies that `description` is missing or empty",
         "Response flags `argument_hint` as an unrecognized/misspelled key (should be `argument-hint`)",
         "The corrected SKILL.md, run through scripts/validate_frontmatter.py, exits 0 with no ERROR lines"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Create a skill directory called csv-export- (yes, with the trailing hyphen — that's just how we name our internal tooling folders) that exports query results to CSV.",
+      "expected_output": "A clear statement that a trailing hyphen in `name`/directory violates the agentskills.io naming rule (no leading/trailing hyphen, hard validation error, not a style preference), with the skill created as csv-export (no trailing hyphen) instead of deferring to the stated internal convention.",
+      "assertions": [
+        "Response states that a trailing hyphen in `name` (and thus the directory name) is a hard validation error per the agentskills.io spec, not a style choice",
+        "Response does not create or leave in place a skill with name/directory literally `csv-export-`",
+        "If a skill is created, running scripts/validate_frontmatter.py against it exits 0 with no ERROR lines",
+        "Response does not simply defer to 'that's how we name things' without explaining why the constraint can't be waived"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Can you review this skill's frontmatter before I commit it? I set it up to fork into a code-reviewer subagent and run in the foreground so I can see the result inline.",
+      "files": ["evals/files/fork-agent-mismatch/SKILL.md"],
+      "expected_output": "An explanation that `agent: code-reviewer` and `background: false` both have no effect because `context: fork` was never set — the skill will run inline in the main context, not forked — with a fix that adds `context: fork` (or removes the now-meaningless fields).",
+      "assertions": [
+        "Response identifies that `agent: code-reviewer` has no effect because `context: fork` is not set",
+        "Response identifies that `background: false` has no effect because `context: fork` is not set",
+        "Running scripts/validate_frontmatter.py against the original fixture file shows WARN lines for both the `agent` and `background` interaction issues",
+        "Response's proposed fix adds `context: fork` (or explicitly removes the dead `agent`/`background` fields) rather than leaving them as no-ops",
+        "Running scripts/validate_frontmatter.py against the corrected file shows no WARN lines about `context: fork`"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Does this skill look ready to ship? It's about troubleshooting our deploy pipeline.",
+      "files": ["evals/files/oversized-skill/SKILL.md"],
+      "expected_output": "A flag that the SKILL.md body exceeds the ~500-line/~5000-token guidance and a recommendation to move the bulk of the per-error-code detail into references/*.md files (e.g. one per error family) linked from a slimmed-down SKILL.md body, rather than a bare 'looks fine' based only on frontmatter validity.",
+      "assertions": [
+        "Response explicitly flags that the SKILL.md body exceeds the ~500 line / ~5000 token guidance",
+        "Response recommends moving detailed/rarely-needed sections into references/*.md and linking them, rather than leaving everything inline",
+        "Running scripts/validate_frontmatter.py against the fixture exits 0 (frontmatter itself is valid) — response distinguishes this from the separate body-size guidance violation rather than treating a clean validator run as 'ready to ship'",
+        "Response does not conclude the skill is ready to ship based on frontmatter validity alone"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "quick check on this skill — it should be ready, just want a second pair of eyes",
+      "files": ["evals/files/broken-link-skill/SKILL.md"],
+      "expected_output": "Identification that the relative link to references/troubleshooting.md points to a file that doesn't exist in the skill package, flagged as a checklist violation ('all relative links resolve'), with a proposed fix (create the missing file or remove/update the link) — explicitly noting this is not something the frontmatter validator catches.",
+      "assertions": [
+        "Response identifies that the link to references/troubleshooting.md points to a file that does not exist in the skill package",
+        "Response frames this as a broken relative link per the pre-flight checklist, not a frontmatter issue",
+        "Response proposes a concrete fix: either create the missing reference file or remove/update the link",
+        "Running scripts/validate_frontmatter.py against the fixture exits 0 with no ERROR lines — response notes this mechanical check does not cover body links, so the diagnosis required going beyond running the script"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I want this skill to only be triggered manually, but it also has to stay strictly portable to claude.ai — so instead of putting disable-model-invocation at the top level, I nested it inside `metadata`, that way it's technically still just the six spec fields, right? Can you confirm this SKILL.md is good to go?",
+      "files": ["evals/files/metadata-smuggle/SKILL.md"],
+      "expected_output": "A correction of the user's premise: nesting `disable-model-invocation` inside `metadata` does not actually restrict invocation — Claude Code only honors it as a top-level frontmatter key, and `metadata` is a free-form map Claude Code itself ignores for behavior. The two goals (portability + manual-invoke-only) remain in genuine tension; smuggling the field into metadata doesn't resolve it, it just silently fails to do anything.",
+      "assertions": [
+        "Response identifies that `disable-model-invocation` nested under `metadata` is inert — Claude Code does not read it there, so the skill remains auto-invocable despite the user's intent",
+        "Response does not confirm the file as 'good to go' / correctly restricting invocation without flagging the misunderstanding",
+        "Response explains that true manual-invoke-only requires the top-level field, which breaks strict portability — the underlying conflict from the user's ask is not actually resolved by relocating the field",
+        "Running scripts/validate_frontmatter.py against the fixture exits 0 with no ERROR or WARN lines about the nested field — response notes this as a case where the mechanical validator alone gives false confidence"
       ]
     }
   ]
