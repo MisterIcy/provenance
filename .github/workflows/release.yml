@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  milestone:
+    types: [closed]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      valid: ${{ steps.check.outputs.valid }}
+    steps:
+      - name: Check milestone title is a semver tag
+        id: check
+        env:
+          MILESTONE_TITLE: ${{ github.event.milestone.title }}
+        run: |
+          if [[ "$MILESTONE_TITLE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Milestone title '$MILESTONE_TITLE' is not in vX.Y.Z format, skipping release."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    needs: guard
+    if: needs.guard.outputs.valid == 'true'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MILESTONE_TITLE: ${{ github.event.milestone.title }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compute release version
+        id: version
+        run: |
+          version="${MILESTONE_TITLE#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Collect merged PRs for this milestone
+        id: prs
+        run: |
+          gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --search "milestone:\"$MILESTONE_TITLE\" is:merged" \
+            --json number,title,url,author,labels \
+            --limit 200 > /tmp/prs.json
+          echo "Found $(jq length /tmp/prs.json) merged PR(s) for milestone $MILESTONE_TITLE"
+
+      - name: Build changelog entry and release notes
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          PRS_JSON_PATH: /tmp/prs.json
+          NOTES_OUT_PATH: /tmp/release-notes.md
+        run: python3 .github/scripts/build_release.py
+
+      - name: Bump plugin manifest versions
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          jq --arg v "$RELEASE_VERSION" '.version = $v' .claude-plugin/plugin.json > /tmp/plugin.json
+          mv /tmp/plugin.json .claude-plugin/plugin.json
+          jq --arg v "$RELEASE_VERSION" '.plugins[0].version = $v' .claude-plugin/marketplace.json > /tmp/marketplace.json
+          mv /tmp/marketplace.json .claude-plugin/marketplace.json
+
+      - name: Commit release changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git commit -m "chore(release): ${{ steps.version.outputs.tag }}"
+          git push origin HEAD:${{ github.event.repository.default_branch }}
+
+      - name: Create GitHub release
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file /tmp/release-notes.md \
+            --target "${{ github.event.repository.default_branch }}"
+
+      - name: Compute next milestone (minor bump)
+        id: next
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          IFS='.' read -r major minor _patch <<< "$RELEASE_VERSION"
+          next="v${major}.$((minor + 1)).0"
+          echo "title=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Create next milestone
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/milestones" \
+            -f title="${{ steps.next.outputs.title }}" \
+            -f state=open \
+            -f description="Auto-created after releasing ${{ steps.version.outputs.tag }}. Rename if this cycle needs a different bump (major/patch)." \
+            || echo "Milestone ${{ steps.next.outputs.title }} may already exist, continuing."
