@@ -11,7 +11,7 @@ hooks:
     - matcher: "Edit|Write"
       hooks:
         - type: command
-          command: "${CLAUDE_SKILL_DIR}/scripts/validate_frontmatter.py"
+          command: "${CLAUDE_PLUGIN_ROOT}/skills/skill-creator/scripts/validate_frontmatter.py"
 ---
 
 ## What this skill does
