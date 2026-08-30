@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-30
+
+### Added
+- **monitors:** Add branch-merge-watch background monitor ([#9](https://github.com/MisterIcy/provenance/pull/9))
+- **git-committer:** Gate commit/push on real PreToolUse hooks ([#8](https://github.com/MisterIcy/provenance/pull/8))
+- **subagent-creator:** Scaffold and review Claude Code subagents ([#7](https://github.com/MisterIcy/provenance/pull/7))
+
+### Fixed
+- **skill-creator, subagent-creator:** Correct hook path variable in SKILL.md frontmatter ([#10](https://github.com/MisterIcy/provenance/pull/10))
+
 ## [0.3.1] - 2026-08-29
 
 _No notable changes recorded for this release._
@@ -27,7 +37,8 @@ _No notable changes recorded for this release._
 
 _No notable changes recorded for this release._
 
-[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/MisterIcy/provenance/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MisterIcy/provenance/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MisterIcy/provenance/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MisterIcy/provenance/compare/v0.1.0...v0.2.0
