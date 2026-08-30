@@ -1,0 +1,7 @@
+[
+  {
+    "name": "branch-merge-watch",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/scripts/watch-branch-merge.sh",
+    "description": "Watches whether the current branch has been merged into the default branch"
+  }
+]

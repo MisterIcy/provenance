@@ -26,6 +26,17 @@
       "type": "boolean",
       "title": "Auto-push after committing",
       "description": "Let git-committer push the current branch immediately after committing, without asking first. Independent of git_committer_auto_commit. Off by default since it publishes commits to a shared remote."
+    },
+    "branch_merge_monitor_enabled": {
+      "type": "boolean",
+      "title": "Auto-switch after branch merge",
+      "description": "Periodically check whether the current branch has been merged into the repo's default branch (via a merged PR, a git merge/fast-forward, or otherwise), and if so — and the working tree is clean — automatically check out the default branch and pull, without asking first. Off by default since it switches branches and pulls without confirmation."
+    },
+    "branch_merge_check_interval_seconds": {
+      "type": "number",
+      "title": "Branch merge check interval (seconds)",
+      "description": "How often the branch-merge monitor polls for a merge, in seconds. Only used when branch_merge_monitor_enabled is on.",
+      "min": 30
     }
   }
 }

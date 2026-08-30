@@ -29,6 +29,8 @@ The plugin ships three skills: two for git workflow automation, plus a meta-skil
 
 - **`skills/skill-creator/`** — a meta-skill for scaffolding and validating other Agent Skills (per the open agentskills.io spec, with a `references/claude-code-extensions.md` doc for CC-specific frontmatter). Now shipped as a first-class plugin skill, available wherever the `provenance` plugin is installed. Use it when authoring new skills in any repository.
 
+- **`monitors/branch-merge-watch`** (`monitors/monitors.json` → `monitors/scripts/watch-branch-merge.sh`) — a background monitor, not a skill: Claude Code starts it automatically whenever the plugin is enabled, and it never runs through the agent's tool-permission loop. It polls whether the current branch has been merged into the repo's default branch (ancestor check for a plain merge/fast-forward, `gh pr list --state merged` for a squash-merged GitHub PR) and, if the working tree is clean, checks out the default branch and pulls without asking. Entirely gated by the `branch_merge_monitor_enabled` plugin option (off by default); the check cadence is `branch_merge_check_interval_seconds`. Because monitor processes don't receive `CLAUDE_PLUGIN_OPTION_*` env vars or `${user_config.*}` substitution (unlike hooks), the script reads both options straight out of `~/.claude/settings.json` on every loop iteration instead.
+
 ### Key conventions across the skill/agent files
 
 - Frontmatter fields like `context: fork`, `agent:`, `tools:`/`allowed-tools:`, `disallowedTools:`, and `model:` (sonnet for the grouper, haiku for the writer) are deliberate — the grouper needs repo-reading tools and no write access, the writer needs only `Read`.
