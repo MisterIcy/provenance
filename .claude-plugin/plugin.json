@@ -17,6 +17,18 @@
       "title": "Auto-sync PR description after push",
       "description": "After a git push on a branch with an open PR, check whether the PR's title/description has drifted from the actual changes and offer to update it via the pr-description-sync skill. Off by default since it inspects and can edit a shared, visible PR.",
       "default": false
+    },
+    "git_committer_auto_commit": {
+      "type": "boolean",
+      "title": "Auto-commit without approval",
+      "description": "Let git-committer stage and commit its proposed commit plan without waiting for your approval (it still shows the plan). Off by default since committing rewrites repo history.",
+      "default": false
+    },
+    "git_committer_auto_push": {
+      "type": "boolean",
+      "title": "Auto-push after committing",
+      "description": "Let git-committer push the current branch immediately after committing, without asking first. Independent of git_committer_auto_commit. Off by default since it publishes commits to a shared remote.",
+      "default": false
     }
   }
 }
