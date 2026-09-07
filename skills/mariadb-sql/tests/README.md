@@ -229,26 +229,36 @@ Each entry:
 
 ## Known gaps
 
-Not every `references/*.md` file is exercised by content-verification cases.
-`references/optimizer-internals.md` now has content-verification cases
-covering its mechanically-checkable claims (`histogram_type`-gated
-selectivity threshold, `eq_range_index_dive_limit`, `rowid_filter` and
-other `optimizer_switch` defaults, `optimizer_prune_level`,
-`information_schema.optimizer_costs`, `optimizer_trace`'s round-trip, and
-the 12.0+ join-order hint syntax) — see `cases/content/optimizer-*.sql` and
-`cases/content/*-switch*`/`*-default*` files tied to that reference. A
-couple of its claims were dropped as not cleanly checkable in this
-forward-only harness: `histogram_type`'s specific default value
-(`DOUBLE_PREC_HB` from 10.4.3) changes again to `JSON_HB` at some
-undocumented point between 10.11 and 11.4, so a single version-tagged case
-can't assert one literal value across the whole matrix without breaking
-forward-compatibility; `optimizer_prune_level`'s default is on across the
-matrix but its literal numeric value changes (1 vs 2) between 10.6 and
-10.11 for the same reason, so that case asserts on/off via a derived
-marker rather than a hardcoded number. `references/query-profiling.md`
-(SHOW PROFILE, Performance Schema, slow query log, ANALYZE FORMAT=JSON
-runtime fields, status counters) remains knowledge-only and uncovered —
-that gap is being closed in a separate, later piece of work.
+Not every `references/*.md` file is exercised by content-verification
+cases. `references/optimizer-internals.md` and `references/query-profiling.md`
+now both have cases covering their mechanically-checkable claims (see
+`cases/content/optimizer-*.sql`, `cases/content/*-switch*`/`*-default*`
+for the former, and the `SHOW PROFILE`/Performance Schema/slow-query-log/
+`ANALYZE FORMAT=JSON`/`INNODB_METRICS`/in-flight-query cases for the
+latter). A few claims from those two were dropped or adjusted as not
+cleanly checkable in this forward-only harness, or found to disagree with
+the live containers:
+
+- `histogram_type`'s specific default value (`DOUBLE_PREC_HB` from
+  10.4.3) changes again to `JSON_HB` at some undocumented point between
+  10.11 and 11.4, so a single version-tagged case can't assert one
+  literal value across the whole matrix without breaking
+  forward-compatibility.
+- `optimizer_prune_level`'s default is on across the matrix but its
+  literal numeric value changes (1 vs 2) between 10.6 and 10.11 for the
+  same reason, so that case asserts on/off via a derived marker rather
+  than a hardcoded number.
+- `INNODB_METRICS`'s `STATUS`→`ENABLED` column rename is documented as
+  landing at 10.4, but live-checked against this harness's own images the
+  `ENABLED` column errors as unknown on 10.4.34 and only resolves from
+  10.5 onward — the case (and the reference doc) are tagged/corrected to
+  10.5.
+
+`references/correctness.md`, `references/modernization-rewrites.md`,
+`references/performance.md`, and `references/safety-and-config.md` remain
+uncovered by content-verification cases — their claims are largely
+review-judgment/reasoning ones better suited to the agent-eval suite than
+a live-server assertion, and picking that up is unstarted future work.
 
 ## Known gotchas
 
