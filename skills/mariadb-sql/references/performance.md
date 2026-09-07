@@ -1,6 +1,6 @@
 # MariaDB performance and the optimizer
 
-How to read execution plans and judge index/query performance specifically on MariaDB.
+How to read execution plans and judge index/query performance specifically on MariaDB. When a plan looks wrong despite reasonable indexes, see `optimizer-internals.md` for the cost model, statistics, and join/semi-join internals behind the choice. When the task is measuring a live query or workload's actual runtime behavior rather than judging its plan, see `query-profiling.md`.
 
 ## Reading `EXPLAIN`
 
