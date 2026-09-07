@@ -1,0 +1,14 @@
+-- query-profiling.md claims: "log_slow_verbosity accepts a comma-separated
+-- set: ... explain (10.1.0+ -- logs a full plan line...)". 10.1.0 predates
+-- our whole matrix (10.2+), so no .version tag. The claim being tested is
+-- acceptance of the value: SET GLOBAL rejecting 'explain' as invalid would
+-- exit non-zero, so a clean exit 0 already proves acceptance -- asserted
+-- on exit code alone (no substring), since the mysql/mariadb client prints
+-- no "Query OK" text for a non-SELECT statement in default non-interactive
+-- (piped) batch mode -- that text only appears with -v/--verbose or in an
+-- interactive session. (Also live-checked: an immediate readback SELECT
+-- right after this exact SET occasionally, rarely, surfaced the pre-SET
+-- value in this harness's 10.2 image -- a propagation race in the
+-- container's own MariaDB, not a real assertion bug -- which is the other
+-- reason this case doesn't read the value back.)
+SET GLOBAL log_slow_verbosity = 'query_plan,explain';
