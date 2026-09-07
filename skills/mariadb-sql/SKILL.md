@@ -1,6 +1,6 @@
 ---
 name: mariadb-sql
-description: MariaDB-specific SQL dialect knowledge — correctness pitfalls (NULL/GROUP BY/collation semantics), performance (optimizer, indexes, EXPLAIN reading), safety (sql_mode, FK/engine behavior), and feature-availability by version (window functions, CTEs, JSON, sequences, system-versioned tables). Use when reviewing, writing, or tuning SQL that targets MariaDB (as opposed to generic ANSI SQL, MySQL-only behavior, or another RDBMS), or when the target version/edition is unstated but the schema/tooling implies MariaDB (`mariadb`/`mariadb-admin` CLI, `my.cnf`, `aria`/`innodb`/`columnstore` storage-engine mentions, a `10.x`/`11.x`/`12.x` version string). Trigger on the user simply saying "MariaDB" in a SQL/database context, not only on an explicit review/tuning request — dialect detection alone is enough to load this reference.
+description: MariaDB-specific SQL dialect knowledge — correctness pitfalls (NULL/GROUP BY/collation semantics), performance (optimizer, indexes, EXPLAIN reading), safety (sql_mode, FK/engine behavior), feature-availability by version (window functions, CTEs, JSON, sequences, system-versioned tables), and version-gated modernization rewrites (old workaround pattern → modern feature, e.g. a counter table → `SEQUENCE`, or last-insert-id round trip → `RETURNING`). Use when reviewing, writing, or tuning SQL that targets MariaDB (as opposed to generic ANSI SQL, MySQL-only behavior, or another RDBMS), or when the target version/edition is unstated but the schema/tooling implies MariaDB (`mariadb`/`mariadb-admin` CLI, `my.cnf`, `aria`/`innodb`/`columnstore` storage-engine mentions, a `10.x`/`11.x`/`12.x` version string). Trigger on the user simply saying "MariaDB" in a SQL/database context, not only on an explicit review/tuning request — dialect detection alone is enough to load this reference.
 disable-model-invocation: false
 ---
 
@@ -20,8 +20,9 @@ Dialect reference for anyone reviewing, writing, or tuning SQL against MariaDB. 
 3. **Read `references/performance.md`** for optimizer behavior, index usage, and how to read `EXPLAIN`/`EXPLAIN FORMAT=JSON`/`ANALYZE FORMAT=JSON` output.
 4. **Read `references/safety-and-config.md`** for `sql_mode`, foreign-key/engine gotchas, and replication-safety concerns (statements that are fine standalone but break replication or backups).
 5. **Read `references/version-features.md`** only when a query uses (or could use) a feature you need to confirm is available at the target version — window functions, CTEs, JSON functions, sequences, system-versioned tables, invisible columns, etc.
+6. **Read `references/modernization-rewrites.md`** only when proposing that a query be rewritten to use a newer MariaDB feature (not fixing a bug — simplifying, clarifying, or speeding up working SQL). It pairs old patterns with their modern replacement and the version each replacement requires; never propose one without confirming the target version against it.
 
-Don't load all four references for a trivial query — pull only the ones relevant to what you're actually checking.
+Don't load all five references for a trivial query — pull only the ones relevant to what you're actually checking.
 
 ## MariaDB vs MySQL
 
