@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-07
+
+### Added
+- **ci:** Add mariadb-tests workflow, CLAUDE.md pointer, README gaps note ([#19](https://github.com/MisterIcy/provenance/pull/19))
+- **mariadb-sql:** Add optimizer-internals and query-profiling references ([#17](https://github.com/MisterIcy/provenance/pull/17))
+- **agents:** Add ansi-sql-dba subagent, deepen correctness knowledge ([#16](https://github.com/MisterIcy/provenance/pull/16))
+- **agents,skills:** Teach sql-query-reviewer to propose version-gated modernization rewrites ([#15](https://github.com/MisterIcy/provenance/pull/15))
+- **agents,skills:** Trigger sql-query-reviewer and mariadb-sql on mere MariaDB mention ([#14](https://github.com/MisterIcy/provenance/pull/14))
+- **agents:** Add sql-query-reviewer subagent with read-only SQL guard hook ([#12](https://github.com/MisterIcy/provenance/pull/12))
+- **skills:** Add mariadb-sql dialect-reference skill with test harness ([#11](https://github.com/MisterIcy/provenance/pull/11))
+
+### Fixed
+- **hooks:** Only gate permission on git commit/push commands ([#18](https://github.com/MisterIcy/provenance/pull/18))
+
 ## [0.4.0] - 2026-08-30
 
 ### Added
@@ -37,7 +51,8 @@ _No notable changes recorded for this release._
 
 _No notable changes recorded for this release._
 
-[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MisterIcy/provenance/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MisterIcy/provenance/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MisterIcy/provenance/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MisterIcy/provenance/compare/v0.2.0...v0.3.0
