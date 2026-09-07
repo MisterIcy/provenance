@@ -1,0 +1,31 @@
+name: MariaDB SQL skill tests
+
+on:
+  pull_request:
+    paths:
+      - "skills/mariadb-sql/**"
+      - ".github/workflows/mariadb-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "10.2"
+          - "10.3"
+          - "10.4"
+          - "10.5"
+          - "10.6"
+          - "10.11"
+          - "11.4"
+          - "11.8"
+          - "12.3"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run harness for MariaDB ${{ matrix.version }}
+        run: skills/mariadb-sql/tests/scripts/run-version.sh "${{ matrix.version }}"

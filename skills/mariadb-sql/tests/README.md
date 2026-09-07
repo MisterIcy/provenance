@@ -227,6 +227,20 @@ Each entry:
 5. Run `scripts/run-version.sh <version>` on its own first to confirm it
    boots and passes before adding it to a full matrix run.
 
+## Known gaps
+
+Not every `references/*.md` file is exercised by content-verification cases.
+`references/optimizer-internals.md` (optimizer cost model, statistics,
+join/semi-join strategy internals) and `references/query-profiling.md`
+(SHOW PROFILE, Performance Schema, slow query log, ANALYZE FORMAT=JSON
+runtime fields, status counters) are knowledge-only — they document tooling
+and methodology rather than version-gated SQL syntax facts that a single
+mechanical SQL-exec case can check against a live server. Claims like a
+variable's deprecation status, a rename, or a tool's behavior aren't the
+kind of thing `<name>.sql` / `<name>.expected` can assert. No test cases
+exist for these two files, and none are planned — this is a deliberate,
+documented gap, not an oversight.
+
 ## Known gotchas
 
 - **`mysql`/`mariadb` client binary name.** Images through ~11.x ship
