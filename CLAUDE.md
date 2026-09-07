@@ -12,6 +12,7 @@ There is no build/lint/test tooling. The only executable script in the repo is:
 
 ```bash
 skills/git-committer-setup/scripts/ingest-commits.sh [count]   # dumps last N commits by git user.email for style-profile ingestion
+skills/mariadb-sql/tests/scripts/run-version.sh <version>      # Docker-verified mariadb-sql test harness, one MariaDB milestone version; run-matrix.sh runs all of them — see skills/mariadb-sql/tests/README.md
 ```
 
 Releases are cut via GitHub Actions (`.github/workflows/release.yml`), triggered by closing a milestone named `vX.Y.Z`; `.github/scripts/build_release.py` regenerates `CHANGELOG.md` from merged PR titles (parsed as Conventional Commits) and bumps the version in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`. Don't hand-bump those version fields — the workflow does it.
