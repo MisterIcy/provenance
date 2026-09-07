@@ -5,6 +5,12 @@
 # `Bash(git commit:*)` allow rule in settings.
 set -euo pipefail
 
+command_str="$(jq -r '.tool_input.command // empty')"
+
+if [ -z "$command_str" ] || ! echo "$command_str" | grep -Eq '(^|[;&|]|\s)git\s+commit(\s|$)'; then
+  exit 0
+fi
+
 if [ "${CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_COMMIT:-false}" = "true" ]; then
   echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"git_committer_auto_commit is enabled"}}'
 else

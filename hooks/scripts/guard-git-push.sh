@@ -6,6 +6,12 @@
 # git_committer_auto_commit / guard-git-commit.sh.
 set -euo pipefail
 
+command_str="$(jq -r '.tool_input.command // empty')"
+
+if [ -z "$command_str" ] || ! echo "$command_str" | grep -Eq '(^|[;&|]|\s)git\s+push(\s|$)'; then
+  exit 0
+fi
+
 if [ "${CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_PUSH:-false}" = "true" ]; then
   echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"git_committer_auto_push is enabled"}}'
 else
