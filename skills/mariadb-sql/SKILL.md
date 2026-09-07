@@ -1,6 +1,6 @@
 ---
 name: mariadb-sql
-description: MariaDB-specific SQL dialect knowledge — correctness pitfalls (NULL/GROUP BY/collation semantics), performance (optimizer, indexes, EXPLAIN reading), safety (sql_mode, FK/engine behavior), and feature-availability by version (window functions, CTEs, JSON, sequences, system-versioned tables). Use when reviewing, writing, or tuning SQL that targets MariaDB (as opposed to generic ANSI SQL, MySQL-only behavior, or another RDBMS), or when the target version/edition is unstated but the schema/tooling implies MariaDB (`mariadb` CLI, `aria`/`innodb` storage-engine mentions, a `10.x`/`11.x` version string).
+description: MariaDB-specific SQL dialect knowledge — correctness pitfalls (NULL/GROUP BY/collation semantics), performance (optimizer, indexes, EXPLAIN reading), safety (sql_mode, FK/engine behavior), and feature-availability by version (window functions, CTEs, JSON, sequences, system-versioned tables). Use when reviewing, writing, or tuning SQL that targets MariaDB (as opposed to generic ANSI SQL, MySQL-only behavior, or another RDBMS), or when the target version/edition is unstated but the schema/tooling implies MariaDB (`mariadb`/`mariadb-admin` CLI, `my.cnf`, `aria`/`innodb`/`columnstore` storage-engine mentions, a `10.x`/`11.x`/`12.x` version string). Trigger on the user simply saying "MariaDB" in a SQL/database context, not only on an explicit review/tuning request — dialect detection alone is enough to load this reference.
 disable-model-invocation: false
 ---
 
