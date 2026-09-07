@@ -225,6 +225,42 @@
         "Response does not dismiss the possibility as purely an application bug without mentioning this server-default change",
         "Response does not claim this default change happened at a version other than 11.8"
       ]
+    },
+    {
+      "id": 20,
+      "target_version": "10.3",
+      "prompt": "We're on MariaDB 10.3. Here's how we generate order numbers today: a `counters` table with a single row, and every insert does `UPDATE counters SET val = val + 1 WHERE name = 'order_no'` inside a transaction, then `SELECT val FROM counters WHERE name = 'order_no'` to get the new number. It works but I keep hearing sequences are a thing in MariaDB now \u2014 is there a cleaner way, and does our version support it?",
+      "expected_output": "A modernization suggestion: replace the counters-table read-modify-write pattern with a native `CREATE SEQUENCE` + `NEXTVAL(seq)`, confirming sequences are available since MariaDB 10.3 (so the stated 10.3 target supports it), and explaining the sequence avoids the row-lock contention/round-trip of the update-then-select pattern.",
+      "assertions": [
+        "Response proposes CREATE SEQUENCE / NEXTVAL as a modernization of the counters-table pattern",
+        "Response confirms sequences are available at the stated target version (10.3), citing that as the introduction version",
+        "Response frames this as a modernization/simplification suggestion, not as a correctness bug in the existing pattern",
+        "Response does not claim sequences require a version newer than 10.3"
+      ]
+    },
+    {
+      "id": 21,
+      "target_version": "10.5",
+      "prompt": "MariaDB 10.5 here. Our app does `INSERT INTO orders (...) VALUES (...)`, then a second query `SELECT * FROM orders WHERE id = LAST_INSERT_ID()` to get the full row back (including columns with DB-computed defaults) so we can return it in the API response. Any way to cut this down to one round trip on our version?",
+      "expected_output": "A modernization suggestion to replace the INSERT + follow-up SELECT with a single `INSERT ... RETURNING ...` statement, confirming RETURNING is available since MariaDB 10.5 (matching the stated target), and noting it's still a mutating statement the reviewer only describes rather than executes.",
+      "assertions": [
+        "Response proposes INSERT ... RETURNING as a modernization of the insert-then-select pattern",
+        "Response confirms RETURNING is available at the stated target version (10.5), citing that as the introduction version",
+        "Response frames this as a modernization/simplification suggestion rather than a correctness bug in the two-statement approach",
+        "Response does not claim RETURNING requires a version newer than 10.5 or that it exists in MySQL"
+      ]
+    },
+    {
+      "id": 22,
+      "target_version": "11.8",
+      "prompt": "We're on MariaDB 11.8. Right now we store product embeddings as JSON arrays in a TEXT column, pull every row back to the application, and compute cosine similarity in Python to find the nearest matches. It's slow once the table gets big. Is there anything in MariaDB itself that could help, given our version?",
+      "expected_output": "A modernization suggestion to use MariaDB's native VECTOR column type with a vector index and VEC_DISTANCE_COSINE()/VEC_DISTANCE(), confirming this is fully available and LTS-stable as of 11.8 (matching the stated target), replacing the pull-everything-and-compute-in-app-code pattern with in-engine distance computation/search.",
+      "assertions": [
+        "Response proposes the native VECTOR type plus VEC_DISTANCE_COSINE or VEC_DISTANCE as a modernization of the app-side similarity computation",
+        "Response confirms vector search is fully available/stable at the stated target version (11.8)",
+        "Response frames this as a modernization/performance improvement suggestion rather than a correctness bug",
+        "Response does not claim full vector search functionality is available on versions before 11.6-11.8 per version-features.md's staged rollout"
+      ]
     }
   ]
 }
