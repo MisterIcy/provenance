@@ -5,9 +5,13 @@
 # `Bash(git commit:*)` allow rule in settings.
 set -euo pipefail
 
+if ! command -v jq >/dev/null 2>&1; then
+  exit 0
+fi
+
 command_str="$(jq -r '.tool_input.command // empty')"
 
-if [ -z "$command_str" ] || ! echo "$command_str" | grep -Eq '(^|[;&|]|\s)git\s+commit(\s|$)'; then
+if [ -z "$command_str" ] || ! printf '%s\n' "$command_str" | grep -Eq '(^|[;&|]|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
   exit 0
 fi
 
