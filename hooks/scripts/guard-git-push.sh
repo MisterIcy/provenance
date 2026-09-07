@@ -13,4 +13,4 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 0
 fi
 
-exec python3 "$(dirname "${BASH_SOURCE[0]}")/git_guard.py" push CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_PUSH
+python3 "$(dirname "${BASH_SOURCE[0]}")/git_guard.py" push CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_PUSH || exit 0
