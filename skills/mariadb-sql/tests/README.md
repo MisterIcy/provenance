@@ -230,16 +230,25 @@ Each entry:
 ## Known gaps
 
 Not every `references/*.md` file is exercised by content-verification cases.
-`references/optimizer-internals.md` (optimizer cost model, statistics,
-join/semi-join strategy internals) and `references/query-profiling.md`
+`references/optimizer-internals.md` now has content-verification cases
+covering its mechanically-checkable claims (`histogram_type`-gated
+selectivity threshold, `eq_range_index_dive_limit`, `rowid_filter` and
+other `optimizer_switch` defaults, `optimizer_prune_level`,
+`information_schema.optimizer_costs`, `optimizer_trace`'s round-trip, and
+the 12.0+ join-order hint syntax) — see `cases/content/optimizer-*.sql` and
+`cases/content/*-switch*`/`*-default*` files tied to that reference. A
+couple of its claims were dropped as not cleanly checkable in this
+forward-only harness: `histogram_type`'s specific default value
+(`DOUBLE_PREC_HB` from 10.4.3) changes again to `JSON_HB` at some
+undocumented point between 10.11 and 11.4, so a single version-tagged case
+can't assert one literal value across the whole matrix without breaking
+forward-compatibility; `optimizer_prune_level`'s default is on across the
+matrix but its literal numeric value changes (1 vs 2) between 10.6 and
+10.11 for the same reason, so that case asserts on/off via a derived
+marker rather than a hardcoded number. `references/query-profiling.md`
 (SHOW PROFILE, Performance Schema, slow query log, ANALYZE FORMAT=JSON
-runtime fields, status counters) are knowledge-only — they document tooling
-and methodology rather than version-gated SQL syntax facts that a single
-mechanical SQL-exec case can check against a live server. Claims like a
-variable's deprecation status, a rename, or a tool's behavior aren't the
-kind of thing `<name>.sql` / `<name>.expected` can assert. No test cases
-exist for these two files, and none are planned — this is a deliberate,
-documented gap, not an oversight.
+runtime fields, status counters) remains knowledge-only and uncovered —
+that gap is being closed in a separate, later piece of work.
 
 ## Known gotchas
 
