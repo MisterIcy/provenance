@@ -1,0 +1,230 @@
+{
+  "skill_name": "mariadb-sql",
+  "evals": [
+    {
+      "id": 1,
+      "target_version": "10.4",
+      "prompt": "We're on MariaDB 10.4. I need to review this migration before I ship it: `ALTER TABLE orders DROP COLUMN legacy_notes;` \u2014 my teammate says this will lock the table for a full rebuild since it's an 8M-row InnoDB table, so we're planning a maintenance window. Does that check out?",
+      "expected_output": "A correction citing references/version-features.md: MariaDB 10.4 extended instant ALTER TABLE support to include DROP COLUMN (ALGORITHM=INSTANT), so a plain DROP COLUMN on a non-indexed, non-partitioned column does not require a full table rebuild or a maintenance window on 10.4+ \u2014 while still noting this depends on the exact column/table specifics (e.g. it wouldn't apply if the column were part of an index, or on a version below 10.4).",
+      "assertions": [
+        "Response identifies the target version as 10.4 and states DROP COLUMN is eligible for ALGORITHM=INSTANT starting at 10.4",
+        "Response explicitly disagrees with the premise that a maintenance window / full rebuild is required for this specific ALTER, rather than agreeing by default",
+        "Response notes the instant-DDL eligibility is conditional on the specific change (e.g. column not part of an index) rather than asserting DROP COLUMN is unconditionally instant in all cases",
+        "Response does not claim this behavior is available below 10.4"
+      ]
+    },
+    {
+      "id": 2,
+      "target_version": "10.4",
+      "prompt": "Trying to add `UNIQUE KEY uq_hash (payload_hash)` where payload_hash is a BLOB column, on our MariaDB 10.4 box, and it's erroring. I thought unique indexes on BLOB were never allowed \u2014 is that still true or did I mess up the syntax?",
+      "expected_output": "An explanation that MariaDB 10.4 added support for unique indexes/constraints on BLOB/TEXT columns, but only with an explicit prefix length (e.g. `UNIQUE KEY uq_hash (payload_hash(20))`); the bare column reference without a prefix length is what's failing, not a blanket BLOB restriction.",
+      "assertions": [
+        "Response states unique indexes on BLOB/TEXT columns became possible in MariaDB 10.4, correcting the user's belief that it's never allowed",
+        "Response identifies the missing explicit prefix length as the actual cause of the error, e.g. suggesting `payload_hash(20)` syntax",
+        "Response does not claim this works on versions prior to 10.4"
+      ]
+    },
+    {
+      "id": 3,
+      "target_version": "10.5",
+      "prompt": "We're still on MariaDB 10.5 \u2014 can I use this to flatten a JSON array column into rows? `SELECT jt.tag FROM articles a, JSON_TABLE(a.metadata, '$.tags[*]' COLUMNS (tag VARCHAR(64) PATH '$')) AS jt;`",
+      "expected_output": "A correction citing references/version-features.md: JSON_TABLE was introduced in MariaDB 10.6, so this query will fail on a 10.5 server (`FUNCTION skilltest.JSON_TABLE does not exist` or similar) \u2014 not available at the stated target version. Should suggest either upgrading to 10.6+ or an alternative (e.g. JSON_EXTRACT with a fixed set of index lookups, or CTE + JSON_VALUE per known key) if staying on 10.5.",
+      "assertions": [
+        "Response identifies the target version as 10.5 and states JSON_TABLE is unavailable \u2014 introduced in 10.6",
+        "Response does not claim JSON_TABLE works on 10.5",
+        "Response offers or at least gestures at a fallback approach for staying on 10.5, or clearly recommends upgrading to 10.6+"
+      ]
+    },
+    {
+      "id": 4,
+      "target_version": "10.6",
+      "prompt": "On our fresh MariaDB 10.6 instance, I ran `CREATE TABLE t (name VARCHAR(50) CHARACTER SET utf8) ENGINE=InnoDB;` assuming `utf8` here means full utf8mb4 (4-byte, all-of-Unicode) storage like it does in newer MySQL. Can this column actually store emoji / astral-plane characters?",
+      "expected_output": "A correction citing references/version-features.md's 10.6 'character set default flip': as of 10.6, the bare `utf8` alias points to `utf8mb3` (3-byte, BMP-only) unless `old_mode` says otherwise, so this column will NOT reliably store 4-byte characters like most emoji \u2014 the user needs to declare `utf8mb4` explicitly to get that.",
+      "assertions": [
+        "Response states that on MariaDB 10.6+, unqualified `utf8` is an alias for `utf8mb3`, not `utf8mb4`",
+        "Response concludes the column as declared will NOT reliably store 4-byte/astral-plane characters (e.g. most emoji)",
+        "Response recommends declaring `utf8mb4` explicitly to get the behavior the user wants",
+        "Response does not assert utf8 automatically means utf8mb4 on 10.6"
+      ]
+    },
+    {
+      "id": 5,
+      "target_version": "10.3",
+      "prompt": "We're on MariaDB 10.3 and want unique invoice numbers. Can we use `CREATE SEQUENCE invoice_seq START WITH 1000 INCREMENT BY 1;` then `INSERT INTO invoices (id, customer_id) VALUES (NEXT VALUE FOR invoice_seq, 42);` or is that MySQL-incompatible syntax that just won't run here?",
+      "expected_output": "Confirmation citing references/version-features.md: CREATE SEQUENCE and NEXT VALUE FOR / NEXTVAL() are valid MariaDB syntax introduced in 10.3, so this runs as written on their stated 10.3 target. Should note it's MariaDB-only (no MySQL equivalent), so the same script would fail against MySQL, but that isn't a problem for their MariaDB 10.3 target.",
+      "assertions": [
+        "Response confirms CREATE SEQUENCE and NEXT VALUE FOR / NEXTVAL are valid and available on MariaDB 10.3 (introduced at 10.3, not a later version)",
+        "Response notes sequences are MariaDB-only with no MySQL equivalent, without claiming this makes the syntax invalid for their MariaDB target",
+        "Response does not claim sequences require a version newer than 10.3"
+      ]
+    },
+    {
+      "id": 6,
+      "target_version": "10.3",
+      "prompt": "Reviewing a migration for our MariaDB 10.3 cluster before we run it during business hours: `ALTER TABLE articles DROP COLUMN cover_image, ADD COLUMN internal_notes VARCHAR(255) INVISIBLE;` Teammate says the whole statement will apply instantly (ALGORITHM=INSTANT) since we're on 10.3 and instant DDL landed here. True?",
+      "expected_output": "A correction citing references/version-features.md: ALGORITHM=INSTANT for ADD COLUMN landed at 10.3, but instant DROP COLUMN wasn't added until 10.4 \u2014 so on a 10.3 server this combined ALTER will NOT run fully instantly; the DROP COLUMN portion forces a rebuild (or at least isn't instant-eligible), so the business-hours lock risk from that part is real despite the ADD COLUMN half qualifying.",
+      "assertions": [
+        "Response distinguishes ADD COLUMN (instant since 10.3) from DROP COLUMN (instant only since 10.4)",
+        "Response explicitly disagrees that the whole ALTER runs instantly on a 10.3 server",
+        "Response flags the DROP COLUMN portion as carrying lock/rebuild risk worth caution before running during business hours",
+        "Response does not claim DROP COLUMN is instant-eligible on MariaDB 10.3"
+      ]
+    },
+    {
+      "id": 7,
+      "target_version": "10.5",
+      "prompt": "We're on MariaDB 10.5. Reviewing this before I add it to our order-processing service: `INSERT INTO orders (customer_id, total) VALUES (42, 99.95) RETURNING id, created_at;` \u2014 teammate says RETURNING isn't real MariaDB syntax and I must be thinking of Postgres. Which of us is right?",
+      "expected_output": "A correction citing references/version-features.md: the RETURNING clause on INSERT (joining DELETE, which already had it) is valid MariaDB-only syntax introduced in 10.5, so this statement is valid as written on their stated 10.5 target \u2014 the teammate is wrong that it's Postgres-only, though it's worth noting RETURNING is MariaDB-specific (no MySQL equivalent) and this remains a mutating statement a reviewer would not itself execute.",
+      "assertions": [
+        "Response confirms RETURNING on INSERT is valid MariaDB syntax, introduced at 10.5, correcting the teammate's claim that it isn't real MariaDB syntax",
+        "Response notes RETURNING is MariaDB-only (not shared with stock MySQL)",
+        "Response does not claim RETURNING requires a version newer than 10.5",
+        "Response does not claim the reviewer executed or should execute the mutating statement"
+      ]
+    },
+    {
+      "id": 8,
+      "target_version": "10.5",
+      "prompt": "On MariaDB 10.5, I wrote a recursive CTE to walk a manager hierarchy that might have bad data with circular manager references: `WITH RECURSIVE chain AS (SELECT id, manager_id, 1 AS depth FROM org_chart WHERE id = 4 UNION SELECT o.id, o.manager_id, chain.depth + 1 FROM org_chart o, chain WHERE o.id = chain.manager_id) CYCLE id SET is_cycle USING cycle_path SELECT * FROM chain;` It runs forever on bad data right now without a CYCLE clause, so I added one to guard against that. Will this specific CYCLE syntax actually work on 10.5?",
+      "expected_output": "A correction citing references/version-features.md: MariaDB added a CYCLE clause for recursive-CTE cycle detection at 10.5, so the general approach is right for their target, but MariaDB's grammar only supports the plain `CYCLE <column_list> RESTRICT` form \u2014 it does not support the SQL-standard `SET <mark_col> USING <path_col>` extension the user wrote, so this exact statement will fail with a syntax error; it should be rewritten as `CYCLE id RESTRICT` (losing the mark/path columns, since MariaDB doesn't expose them).",
+      "assertions": [
+        "Response confirms recursive-CTE CYCLE detection is a real MariaDB feature introduced at 10.5",
+        "Response flags that the SET ... USING ... form is not valid MariaDB grammar and the statement as written will error",
+        "Response recommends or shows the working MariaDB form, `CYCLE id RESTRICT`",
+        "Response does not claim the SET/USING syntax works unmodified on MariaDB 10.5"
+      ]
+    },
+    {
+      "id": 9,
+      "target_version": "10.5",
+      "prompt": "We're on MariaDB 10.5, building a room-booking system. I want the database itself to reject overlapping bookings for the same room, without app-level locking. Someone suggested `WITHOUT OVERLAPS`. Is that real, and would this schema actually stop a double-booking? `CREATE TABLE room_bookings (id INT UNSIGNED NOT NULL AUTO_INCREMENT, room_id INT UNSIGNED NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, PRIMARY KEY (id), PERIOD FOR valid_period (start_date, end_date), UNIQUE KEY uq_no_overlap (room_id, valid_period WITHOUT OVERLAPS));`",
+      "expected_output": "Confirmation citing references/version-features.md: WITHOUT OVERLAPS is a real MariaDB constraint for application-time period tables, introduced at 10.5, and this schema is a valid, idiomatic use of it \u2014 a UNIQUE constraint combining room_id with a WITHOUT OVERLAPS period column will make the server reject an INSERT/UPDATE that would create an overlapping (room_id, [start_date, end_date)) range for the same room, enforcing the no-double-booking invariant at the database layer without needing app-level locking.",
+      "assertions": [
+        "Response confirms WITHOUT OVERLAPS is real MariaDB syntax, introduced at 10.5, for application-time period tables",
+        "Response confirms this specific schema will cause the database to reject an overlapping insert for the same room_id",
+        "Response does not claim WITHOUT OVERLAPS requires a version newer than 10.5",
+        "Response correctly relates the PERIOD FOR declaration to the WITHOUT OVERLAPS unique key rather than treating them as unrelated clauses"
+      ]
+    },
+    {
+      "id": 10,
+      "target_version": "10.11",
+      "prompt": "We're rolling out MariaDB 10.11. I want every user (current and future) to have read access to a shared `reference_data` schema without maintaining a per-user GRANT list or a shared role. Someone mentioned `GRANT SELECT ON reference_data.* TO PUBLIC;` \u2014 is that actually valid MariaDB syntax, and does it do what I want?",
+      "expected_output": "Confirmation citing references/version-features.md: GRANT ... TO PUBLIC is real MariaDB syntax, new at 10.11, that grants a privilege to all users (including future ones) without creating an explicit account/role \u2014 so this statement is valid on their stated 10.11 target and does what they're asking for. Should note it's a 10.11+-only feature, so it would fail on any earlier MariaDB version.",
+      "assertions": [
+        "Response confirms GRANT ... TO PUBLIC is valid MariaDB syntax, introduced at 10.11",
+        "Response confirms this grants the privilege to all current and future users without needing a shared role or per-user GRANTs",
+        "Response notes or implies this syntax is unavailable before 10.11",
+        "Response does not claim TO PUBLIC creates an actual named account or role"
+      ]
+    },
+    {
+      "id": 11,
+      "target_version": "10.11",
+      "prompt": "On our MariaDB 10.11 server: `CREATE TABLE events (id INT UNSIGNED NOT NULL AUTO_INCREMENT, label VARCHAR(50), ts TIMESTAMP, PRIMARY KEY (id));` I inserted a row without specifying `ts`, expecting it to auto-populate with the current time like the old MySQL TIMESTAMP default behavior. It came back NULL instead. Is that a bug?",
+      "expected_output": "An explanation citing references/version-features.md: MariaDB 10.10 changed the default of explicit_defaults_for_timestamp to ON, and that default carries into the 10.11 LTS train, so a plain TIMESTAMP column with no explicit DEFAULT no longer auto-populates with CURRENT_TIMESTAMP or auto-updates on modification (the old pre-8.0-compatible MySQL behavior) \u2014 it defaults to NULL instead (or errors, if NOT NULL and no default). Not a bug; the fix is to declare the default explicitly, e.g. `TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP`.",
+      "assertions": [
+        "Response identifies explicit_defaults_for_timestamp defaulting to ON as the cause, citing it as a 10.10-introduced default that persists into 10.11",
+        "Response states this is expected behavior on 10.11, not a bug",
+        "Response recommends declaring an explicit DEFAULT CURRENT_TIMESTAMP (and/or ON UPDATE CURRENT_TIMESTAMP) to restore the old auto-populate behavior",
+        "Response does not claim TIMESTAMP columns auto-populate by default on a fresh MariaDB 10.11 server"
+      ]
+    },
+    {
+      "id": 12,
+      "target_version": "12.3",
+      "prompt": "We just upgraded to MariaDB 12.3. I want to reject a row at insert time if a text column doesn't hold valid JSON: `INSERT INTO json_documents (label, payload) SELECT 'x', 'not json' WHERE 'not json' IS JSON;` My teammate says `IS JSON` is MySQL-only syntax and this won't parse on MariaDB. True?",
+      "expected_output": "A correction citing references/version-features.md: IS JSON is a real, SQL-standard JSON-validation predicate that MariaDB added at 12.3, so this statement is valid as written on their stated 12.3 target and evaluates to a boolean (1 for valid JSON text, 0 otherwise) usable directly in a WHERE clause \u2014 the teammate is wrong that it's MySQL-only. Should note it's brand new (12.3+ only, fails on any earlier MariaDB version) and distinct from the older JSON_VALID() function, which has existed longer and behaves similarly but is a function call rather than a predicate.",
+      "assertions": [
+        "Response confirms IS JSON is valid MariaDB syntax, introduced at 12.3, correcting the teammate's claim that it's MySQL-only",
+        "Response confirms the predicate evaluates to a boolean usable directly in a WHERE clause and describes its true/false behavior correctly (true for valid JSON text, false otherwise)",
+        "Response notes or implies this syntax is unavailable before 12.3",
+        "Response does not claim IS JSON requires a version older than 12.3 or conflate it with an unrelated function"
+      ]
+    },
+    {
+      "id": 13,
+      "target_version": "12.3",
+      "prompt": "Reviewing a stored procedure a teammate wrote for our MariaDB 12.3 instance: `CREATE PROCEDURE assoc_array_total(total OUT INT) AS TYPE score_map IS TABLE OF INT INDEX BY VARCHAR(50); scores score_map; BEGIN scores('ada') := 10; scores('grace') := 20; total := scores('ada') + scores('grace'); END;` They ran it under `SET sql_mode=ORACLE;` first. Someone on the team says associative arrays are an Oracle-only concept and this can't actually be real MariaDB, so it must be broken. Is that right, and will this work?",
+      "expected_output": "A correction citing references/version-features.md: associative arrays (DECLARE/TYPE .. IS TABLE OF .. INDEX BY) are real, Oracle-compatible procedural syntax that MariaDB introduced at 12.1 and consolidated at 12.3 \u2014 so the procedure is genuine MariaDB functionality, not broken. Should note the Oracle-mode-specific syntax details: the TYPE .. IS TABLE OF .. INDEX BY declaration and the `param OUT type` parameter order (rather than MariaDB's native `OUT param type`) both require sql_mode=ORACLE to compile, which the teammate already set correctly; once created, CALLing the procedure does not require ORACLE mode in the caller's session.",
+      "assertions": [
+        "Response confirms associative arrays are real MariaDB syntax, introduced at 12.1 and consolidated at 12.3, correcting the claim that this can't be real MariaDB",
+        "Response identifies that this syntax requires sql_mode=ORACLE to compile, and notes the teammate already set that correctly",
+        "Response notes the Oracle-mode 'param OUT type' parameter order differs from MariaDB's native 'OUT param type' order",
+        "Response does not claim sql_mode=ORACLE is required to just CALL an already-created procedure"
+      ]
+    },
+    {
+      "id": 14,
+      "target_version": "11.4",
+      "prompt": "We're on MariaDB 11.4. I want to reject an insert if a JSON column's document doesn't conform to a schema shape: `SELECT JSON_SCHEMA_VALID('{\"type\":\"object\",\"required\":[\"a\"]}', payload) FROM json_documents;` Teammate says JSON Schema validation isn't a thing in MariaDB and I'm thinking of a MySQL/Postgres feature. True?",
+      "expected_output": "A correction citing references/version-features.md: JSON_SCHEMA_VALID is a real MariaDB function, added at 11.4 as part of the LTS train's JSON function consolidation, so this call is valid on their stated 11.4 target and returns a boolean indicating whether the JSON document matches the given JSON Schema. Should note it's 11.4+ only and fails on earlier MariaDB versions.",
+      "assertions": [
+        "Response confirms JSON_SCHEMA_VALID is a real MariaDB function, introduced at 11.4, correcting the teammate's claim that it doesn't exist",
+        "Response describes it as validating a JSON document against a JSON Schema and returning a boolean",
+        "Response notes or implies this function is unavailable before 11.4",
+        "Response does not claim this function requires a version newer than 11.4"
+      ]
+    },
+    {
+      "id": 15,
+      "target_version": "11.4",
+      "prompt": "On our MariaDB 11.4 cluster we have `KEY idx_score_desc (score DESC)` on a large events table. I want `SELECT MAX(score) FROM score_events;` to be fast without adding a second ascending index just for this one query. Will the optimizer actually use the descending index to answer MAX() without a table/index scan, or do I still need a separate ascending index for MIN/MAX to be fast?",
+      "expected_output": "Confirmation citing references/version-features.md: MariaDB 11.4 made descending indexes usable for MIN()/MAX(), so the existing `score DESC` index alone is sufficient \u2014 EXPLAIN will show 'Select tables optimized away' (or an index-only lookup) rather than a full scan, and no separate ascending index is needed just for this purpose on 11.4+.",
+      "assertions": [
+        "Response confirms descending indexes became usable for MIN()/MAX() starting at MariaDB 11.4",
+        "Response concludes the existing DESC index is sufficient and a separate ascending index is not required for this query to be fast",
+        "Response mentions or implies the expected EXPLAIN signal (e.g. 'Select tables optimized away' / no table scan)",
+        "Response does not claim this optimization requires a version older than 11.4 or an additional ascending index"
+      ]
+    },
+    {
+      "id": 16,
+      "target_version": "11.4",
+      "prompt": "Reviewing a partition-maintenance script before it runs against our MariaDB 11.4 orders table tonight: `ALTER TABLE partitioned_orders EXCHANGE PARTITION p0 WITH TABLE staging_orders WITH VALIDATION;` Teammate says WITH VALIDATION is new syntax that doesn't exist yet and this will just be a syntax error. Should I strip that clause before running it?",
+      "expected_output": "A correction citing references/version-features.md: EXCHANGE PARTITION gained explicit WITH VALIDATION/WITHOUT VALIDATION clauses at 11.4, so the statement is valid as written on their stated 11.4 target and does not need the clause stripped \u2014 WITH VALIDATION additionally makes the server check that every row in staging_orders actually fits partition p0's range before completing the exchange, which is the safer choice to keep for a maintenance script rather than removing it.",
+      "assertions": [
+        "Response confirms WITH VALIDATION / WITHOUT VALIDATION on EXCHANGE PARTITION is valid MariaDB syntax, introduced at 11.4",
+        "Response explicitly disagrees with stripping the clause, since it is not a syntax error",
+        "Response explains WITH VALIDATION's actual effect (checking rows satisfy the target partition's range before completing the exchange)",
+        "Response does not claim this syntax requires a version newer than 11.4"
+      ]
+    },
+    {
+      "id": 17,
+      "target_version": "11.4",
+      "prompt": "Upgrading a script to run against MariaDB 11.4. It currently does `SELECT @@old_alter_table;` to log the ALTER TABLE algorithm mode before running migrations. On our 11.8 staging box this already errors with 'Unknown system variable'; is that just a config issue on staging, or is old_alter_table actually gone as of 11.4 and this logging line needs to be removed for the 11.4 target too?",
+      "expected_output": "Confirmation citing references/version-features.md: old_alter_table was removed starting at MariaDB 11.4 (alongside engine_condition_pushdown, date_format/datetime_format/time_format/max_tmp_tables, innodb_defragment, and wsrep_causal_reads), so the error isn't a staging misconfiguration \u2014 the variable genuinely no longer exists from 11.4 onward, and the logging line needs to be removed (or replaced with alter_algorithm, noting that's deprecated too as of 11.5) rather than fixed as a config problem.",
+      "assertions": [
+        "Response states old_alter_table was removed as of MariaDB 11.4, not merely misconfigured on the staging box",
+        "Response recommends removing (or replacing) the SELECT @@old_alter_table logging line rather than treating it as a config fix",
+        "Response does not claim old_alter_table still exists on MariaDB 11.4",
+        "Response does not claim the variable's removal is specific to 11.8 rather than starting at 11.4"
+      ]
+    },
+    {
+      "id": 18,
+      "target_version": "11.8",
+      "prompt": "We're on MariaDB 11.8, building similarity search for a small embeddings table: `CREATE TABLE embeddings (id INT UNSIGNED NOT NULL AUTO_INCREMENT, label VARCHAR(64) NOT NULL, v VECTOR(4) NOT NULL, PRIMARY KEY (id), VECTOR INDEX (v)) ENGINE=InnoDB;` then `SELECT label FROM embeddings ORDER BY VEC_DISTANCE(v, VEC_FromText('[1,0,0,0]')) LIMIT 5;` Teammate says MariaDB doesn't have a real vector type yet and we should just store embeddings as JSON and compute distance in application code. Who's right, and is this schema/query actually valid?",
+      "expected_output": "A correction citing references/version-features.md: MariaDB's VECTOR data type landed at 11.6, Vector Search at 11.7, and by 11.8 (the current LTS) the full column+index+function surface — VECTOR(n) columns, VECTOR INDEX, and the VEC_FromText/VEC_ToText/VEC_DISTANCE*/VEC_DISTANCE_COSINE/VEC_DISTANCE_EUCLIDEAN function family — is finalized and stable, so both the CREATE TABLE and the ORDER BY VEC_DISTANCE(...) LIMIT query are valid as written on their 11.8 target; the teammate is wrong, and storing embeddings as JSON with application-side distance computation would be a needless regression versus using the native VECTOR type plus its index for approximate nearest-neighbor lookups.",
+      "assertions": [
+        "Response confirms MariaDB has a real, native VECTOR(n) column type and VECTOR INDEX, correcting the teammate's claim that no real vector type exists",
+        "Response confirms the specific CREATE TABLE and VEC_DISTANCE query as written are valid on MariaDB 11.8",
+        "Response attributes the type to 11.6, search capability to 11.7, and the finalized/stable function surface (VEC_DISTANCE, etc.) to 11.8, or otherwise correctly frames 11.8 as where this became fully stable",
+        "Response does not recommend the JSON + application-side-distance approach as necessary or superior given the native VECTOR support"
+      ]
+    },
+    {
+      "id": 19,
+      "target_version": "11.8",
+      "prompt": "Just upgraded our order-processing DB from 11.4 to 11.8. Under load we're now seeing different rows visible mid-transaction under REPEATABLE READ than we did before the upgrade, and nothing in our schema or session settings changed. Could the upgrade itself have altered snapshot/visibility behavior, or are we chasing a phantom and it must be an application bug?",
+      "expected_output": "An explanation citing references/version-features.md: MariaDB 11.8 changed the default of innodb_snapshot_isolation from OFF to ON, which affects REPEATABLE READ visibility semantics — so an upgrade from 11.4 (where it defaulted OFF) to 11.8 can by itself change what a transaction sees under REPEATABLE READ even with no schema or session-setting changes, and this is worth checking (e.g. `SELECT @@innodb_snapshot_isolation;`) before assuming it's purely an application bug.",
+      "assertions": [
+        "Response identifies innodb_snapshot_isolation defaulting to ON at 11.8 (versus OFF previously) as a plausible cause",
+        "Response connects this variable to REPEATABLE READ snapshot/visibility semantics specifically",
+        "Response does not dismiss the possibility as purely an application bug without mentioning this server-default change",
+        "Response does not claim this default change happened at a version other than 11.8"
+      ]
+    }
+  ]
+}

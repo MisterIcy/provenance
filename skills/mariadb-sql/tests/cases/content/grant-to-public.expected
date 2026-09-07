@@ -1,0 +1,2 @@
+0
+GRANT SELECT ON `skilltest`.`articles` TO PUBLIC

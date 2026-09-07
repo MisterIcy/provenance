@@ -1,0 +1,98 @@
+# Docker-verified test harness for the mariadb-sql skill.
+#
+# One service per MariaDB milestone version, gated behind Compose profiles so
+# `docker compose --profile <version> up -d` only boots that one service.
+#
+# Usage (from repo root or from this docker/ directory):
+#   docker compose --profile 10.2 -f skills/mariadb-sql/tests/docker/docker-compose.yml up -d
+#   docker compose --profile 10.2 -f skills/mariadb-sql/tests/docker/docker-compose.yml down
+#
+# Normally you don't invoke this file directly — use
+# ../scripts/run-version.sh <version>, which wraps up/wait/apply/verify/down.
+#
+# Version ordering (oldest -> newest), also used by run-matrix.sh:
+#   10.2, 10.3, 10.4, 10.5, 10.6, 10.11, 11.4, 11.8, 12.3
+
+x-mariadb-common: &mariadb-common
+  environment:
+    MARIADB_ROOT_PASSWORD: test_root_password
+    MARIADB_DATABASE: skilltest
+  # `*admin ping` authenticated as root: plain `healthcheck.sh --connect`
+  # doesn't work here because unix-socket auth for root@localhost isn't the
+  # default until 10.4 (see version-features.md) -- pre-10.4 images have no
+  # way to authenticate the healthcheck without an explicit password, so we
+  # pass it directly (matches MARIADB_ROOT_PASSWORD above; test-only creds).
+  # The client binary itself is version-dependent: images through ~11.x ship
+  # `mysqladmin` (with `mariadb-admin` as an alias); 12.3+ dropped the mysql*
+  # compat binaries entirely and only ships `mariadb-admin`. Prefer whichever
+  # exists in the image rather than hardcoding one name.
+  healthcheck:
+    test: ["CMD-SHELL", "$(command -v mariadb-admin || command -v mysqladmin) ping -h 127.0.0.1 -uroot -ptest_root_password"]
+    interval: 3s
+    timeout: 5s
+    retries: 40
+    start_period: 10s
+
+services:
+  mariadb-10.2:
+    <<: *mariadb-common
+    image: mariadb:10.2
+    profiles: ["10.2"]
+    ports:
+      - "13302:3306"
+
+  mariadb-10.3:
+    <<: *mariadb-common
+    image: mariadb:10.3
+    profiles: ["10.3"]
+    ports:
+      - "13303:3306"
+
+  mariadb-10.4:
+    <<: *mariadb-common
+    image: mariadb:10.4
+    profiles: ["10.4"]
+    ports:
+      - "13304:3306"
+
+  mariadb-10.5:
+    <<: *mariadb-common
+    image: mariadb:10.5
+    profiles: ["10.5"]
+    ports:
+      - "13305:3306"
+
+  mariadb-10.6:
+    <<: *mariadb-common
+    image: mariadb:10.6
+    profiles: ["10.6"]
+    ports:
+      - "13306:3306"
+
+  mariadb-10.11:
+    <<: *mariadb-common
+    image: mariadb:10.11
+    profiles: ["10.11"]
+    ports:
+      - "13311:3306"
+
+  mariadb-11.4:
+    <<: *mariadb-common
+    image: mariadb:11.4
+    profiles: ["11.4"]
+    ports:
+      - "13404:3306"
+
+  mariadb-11.8:
+    <<: *mariadb-common
+    image: mariadb:11.8
+    profiles: ["11.8"]
+    ports:
+      - "13408:3306"
+
+  mariadb-12.3:
+    <<: *mariadb-common
+    image: mariadb:12.3
+    profiles: ["12.3"]
+    ports:
+      - "13503:3306"
