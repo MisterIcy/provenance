@@ -4,8 +4,10 @@
 Reads the hook payload from stdin, tokenizes tool_input.command (handling
 compound commands, quoting, and git global options like -C/-c), and decides
 whether it invokes the given git subcommand. Fails open (exits 0, no output,
-letting the normal permission flow apply) on any malformed input instead of
-crashing the hook and blocking unrelated Bash calls.
+letting the normal permission flow apply) on a malformed/missing payload
+instead of crashing the hook and blocking unrelated Bash calls. A command
+string that itself fails to tokenize (e.g. unbalanced quotes) is treated as
+a match instead, so the gate still asks rather than silently allowing.
 
 Usage: git_guard.py <subcommand> <PLUGIN_OPTION_ENV_VAR>
 """
@@ -48,7 +50,7 @@ def find_subcommand(tokens):
         tok = tokens[i]
         if tok == "--":
             i += 1
-            continue
+            break
         if tok in GLOBAL_OPTS_WITH_ARG:
             i += 2
             continue
