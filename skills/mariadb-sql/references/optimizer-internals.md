@@ -17,13 +17,13 @@ Cardinality/selectivity input comes from two independent sources, and which one 
 
 Part of EITS, stored in `mysql.column_stats`; never auto-collected — require `ANALYZE TABLE ... PERSISTENT FOR COLUMNS (...) INDEXES (...)`, a full scan.
 
-- `histogram_type`: `SINGLE_PREC_HB`/`DOUBLE_PREC_HB` (default from 10.4.3), or `JSON_HB` (10.8, preview in 10.7). `histogram_size` (0–255 for HB types) defaults to 0 — disabled — through 10.4.2.
+- `histogram_type`: `SINGLE_PREC_HB`/`DOUBLE_PREC_HB` (default from 10.4.3), or `JSON_HB` (10.8, preview in 10.7). `histogram_size` (0–255 for HB types) defaults to 0 — disabled — through 10.4.2. **The default changes again after 10.4.3**: live-checked against this skill's own test harness, `DOUBLE_PREC_HB` is the default through at least 10.11, but 11.4 defaults to `JSON_HB` — MariaDB's docs don't state exactly where in that range the switch happened, so confirm the live value on any 11.x+ target rather than assuming `DOUBLE_PREC_HB`.
 - The optimizer only consults histograms when `optimizer_use_condition_selectivity` ≥ 4 (default since 10.4.1); level 5 extends histogram use to non-range predicates via record sampling. Below that threshold, or with no histogram on the column, it falls back to average/uniform selectivity — this matters most for skewed, low-cardinality, non-indexed `WHERE` columns, where "average selectivity" can be badly wrong for a specific value.
 
 ## Join order and search strategy
 
 - `optimizer_search_depth` (default 62 — effectively exhaustive for most join sizes) bounds how deep the join-order permutation search goes before the optimizer greedily fixes a prefix and stops exploring. Lowering it trades plan optimality for planning speed on many-table joins; raising it rarely helps since 62 already covers realistic joins.
-- `optimizer_prune_level` (on by default) discards provably-worse partial plans without fully costing them. Disabling it is a last resort for a suspected pruning-caused miss, not a general-purpose fix.
+- `optimizer_prune_level` (on by default) discards provably-worse partial plans without fully costing them. Disabling it is a last resort for a suspected pruning-caused miss, not a general-purpose fix. Its default numeric value isn't stable across versions — live-checked, it's `1` through 10.6 and `2` from 10.11 onward — so check on/off-ness (`<> 0`), not a specific number, when confirming this against a target.
 - Manual join-order control: `STRAIGHT_JOIN` (legacy, forces `FROM`-clause order for the whole query). **12.0+** adds scoped hint syntax: `/*+ JOIN_FIXED_ORDER() */` (alias for `STRAIGHT_JOIN`), `JOIN_ORDER(t1, t2, ...)` (pins named tables' relative order, others may interleave), `JOIN_PREFIX(...)`/`JOIN_SUFFIX(...)` (named tables lead/trail), all combinable and scopable per query block via `QB_NAME` (e.g. `JOIN_ORDER(t4@subq2, t1)`). Prefer the scoped 12.0+ hints over `STRAIGHT_JOIN` when the target supports them — they don't force the *entire* query's order, just the part that needs it.
 
 ## Semi-join strategies (`IN`/`EXISTS`/`=ANY` subqueries)
