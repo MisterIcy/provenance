@@ -1,0 +1,843 @@
+{
+  "skill_name": "phpunit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our composer.lock has phpunit/phpunit pinned at 12.5.1. Write a PHPUnit test class for a simple Calculator::add(int, int): int method, using a data provider to cover a few number combinations.",
+      "expected_output": "A test class written for PHPUnit 12 conventions: PHP 8 attributes only (#[Test] and/or a plain test-prefixed method, #[DataProvider('...')]) with no doc-comment annotations like @dataProvider, since annotations are fully removed in PHPUnit 12. The data provider method returns an iterable/array of argument sets, and the test asserts on Calculator::add() with assertSame() or assertEquals().",
+      "assertions": [
+        "The response reads or reasons about composer.lock to conclude PHPUnit major version 12 before writing the test",
+        "The generated test uses #[DataProvider(...)] as a PHP attribute, not an @dataProvider doc-comment annotation",
+        "The generated test contains no doc-comment test annotations (@test, @dataProvider, @covers) anywhere",
+        "The response does not claim annotations are still supported in PHPUnit 12"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm upgrading our test suite from PHPUnit 9 to PHPUnit 11. What's actually going to break?",
+      "expected_output": "A summary drawing on references/version-differences.md: the annotations-to-attributes migration status (attributes become primary in 10, annotations still deprecated-but-working through 11), the config schema change from <filter>/<whitelist> to <source>, the introduction of the event system replacing TestListener/*Hook-based extensions (which need a rewrite, not a mechanical port), and a note to check the PHP version floor for PHPUnit 11.",
+      "assertions": [
+        "Response mentions the config schema change from <filter>/<whitelist> (9.x) to <source> (10+)",
+        "Response mentions that TestListener-based extensions need to be rewritten against the new event/subscriber system, not just re-registered",
+        "Response states that annotations still work in PHPUnit 11 (deprecated, not removed) rather than incorrectly claiming they're already gone",
+        "Response does not claim PHPUnit 9 and 11 are drop-in compatible with no changes needed"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "This PHPUnit test is marked risky with 'This test did not perform any assertions' but I don't understand why since it clearly calls a method on the mock. Can you help debug it?",
+      "expected_output": "An explanation grounded in the relevant version's risky-incomplete-tests.md and test-doubles.md content: this risky-test category ('useless test' / no-assertions detection) fires when no assertion method was actually invoked during the test, which commonly happens when a mock expectation (e.g. expects()->method()) is configured but the test itself never calls assertion methods on real return values, or the mocked call never actually executes. The fix is to add an explicit assertion, or verify the code path invoking the mock actually runs.",
+      "assertions": [
+        "Response explains that the 'no assertions performed' risky-test check counts actual assertion-method invocations, not just mock expectation setup",
+        "Response identifies at least one concrete cause (mock expectation configured but never triggered, or no explicit assert*() call in the test body)",
+        "Response's explanation is consistent with the target version's risky-incomplete-tests.md content rather than inventing an unrelated cause",
+        "Response does not tell the user to simply suppress or disable the risky-test check without addressing why it's firing"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "We're still on PHPUnit 9 here. I've got a Stack class and want a test that checks push/pop behavior, plus a second test that just confirms the stack starts empty using the alternate test-naming style (no `test` prefix). Can you write the test class for me?",
+      "expected_output": "A final test class extending PHPUnit\\Framework\\TestCase, declare(strict_types=1), with a method named like testPushAndPop (or similar, prefixed with 'test') using assertSame for exact values, and a second method that does NOT start with 'test' but instead carries an `/** @test */` doc-comment annotation directly above it, since a non-'test'-prefixed method needs that annotation to be recognized in PHPUnit 9.",
+      "assertions": [
+        "response defines a test class extending PHPUnit\\Framework\\TestCase",
+        "response includes at least one method whose name starts with 'test' (e.g. testPushAndPop)",
+        "response includes a second test method that does not start with 'test' and instead has a `/** @test */` doc-comment immediately above its declaration",
+        "response uses assertSame rather than assertEquals for exact value checks",
+        "response does not use a PHP 8 #[Test] attribute as the only way to mark the non-prefixed method"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 5,
+      "prompt": "how do i run just the tests in the 'regression' group but skip anything tagged slow, and also make sure the run fails if any test comes back skipped? we're running plain phpunit from vendor/bin",
+      "expected_output": "A shell command combining --group regression, --exclude-group slow, and --fail-on-skipped, e.g. `vendor/bin/phpunit --group regression --exclude-group slow --fail-on-skipped`.",
+      "assertions": [
+        "response includes the flag `--group regression`",
+        "response includes the flag `--exclude-group slow`",
+        "response includes the flag `--fail-on-skipped`",
+        "response explains that --fail-on-skipped turns an otherwise-non-fatal skipped status into a non-zero exit code",
+        "response invokes the binary as vendor/bin/phpunit or phpunit, not a different runner name"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 6,
+      "prompt": "I have a test class where every test needs a fresh empty array, and one expensive PDO sqlite connection that only needs to be created once for the whole class. Show me how to set that up properly with fixtures.",
+      "expected_output": "setUp() (instance method) resets the array fixture as an instance property before every test method; setUpBeforeClass() (static method) creates the PDO connection once, stored in a static property, with tearDownAfterClass() cleaning it up. Explains that setUp/tearDown run around every test so should stay cheap, while setUpBeforeClass/tearDownAfterClass are for expensive one-time shared setup.",
+      "assertions": [
+        "response includes a protected setUp(): void method that (re)initializes the array fixture as an instance property (e.g. $this->stack)",
+        "response includes a public static setUpBeforeClass(): void method that creates the PDO connection and assigns it to a static property",
+        "response includes a tearDownAfterClass(): void static method that releases/nulls the static PDO property",
+        "response states or implies setUp/tearDown run before and after every single test method, not once per class",
+        "response does not put the expensive PDO connection creation inside setUp()"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 7,
+      "prompt": "Our repo has src/Currency.php and src/Money.php with no tests yet. We want a tests/Unit suite and a separate tests/Integration suite that CI can run less often, and we tag slow DB tests so they can be excluded from the fast suite. Set up the phpunit.xml and file layout for this.",
+      "expected_output": "A phpunit.xml with a <testsuites> block containing two <testsuite> elements (unit pointing at tests/Unit, integration pointing at tests/Integration, using <directory> auto-discovery), plus guidance that files should be named CurrencyTest.php / MoneyTest.php mirroring src/, and that slow tests get an @group slow annotation filterable via --group/--exclude-group rather than being separated by directory alone.",
+      "assertions": [
+        "response's phpunit.xml includes a <testsuites> element with at least two named <testsuite> entries",
+        "response points one testsuite's <directory> at tests/Unit and another at tests/Integration",
+        "response names the mirrored test files CurrencyTest.php and MoneyTest.php (matching the *Test.php convention)",
+        "response mentions tagging slow tests with an `@group slow` doc-comment annotation rather than only relying on directory structure",
+        "response mentions running a single suite via `--testsuite unit` or `--testsuite integration`"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 8,
+      "prompt": "why does my test suite say 'OK, but incomplete or skipped tests!' instead of a clean OK, and what's the actual difference between marking something incomplete vs skipped vs risky in phpunit 9?",
+      "expected_output": "Explains that markTestIncomplete() is for stubbed-out/not-yet-implemented tests (reported as I), markTestSkipped() (often inside setUp, e.g. checking extension_loaded()) is for environment-dependent tests that can't run here (reported as S), and risky (R) is a distinct third concept \u2014 a test that passed but violates a hygiene rule (e.g. zero assertions) rather than being explicitly marked incomplete/skipped. Notes the summary line changes from a clean 'OK' whenever any incomplete or skipped tests exist, even though the run technically passed.",
+      "assertions": [
+        "response distinguishes markTestIncomplete() from markTestSkipped() as two different methods with different intended use cases",
+        "response states incomplete tests are reported with the letter I and skipped tests with the letter S in progress output",
+        "response explains risky (R) is a separate status from incomplete/skipped, describing at least one risky category (e.g. zero-assertion tests)",
+        "response mentions that a test with zero assertions is risky by default unless annotated @doesNotPerformAssertions",
+        "response does not claim skipped and incomplete are the same status"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 9,
+      "prompt": "Review this test double code for correctness:\n\n```php\n$mock = $this->createMock(PaymentGateway::class);\n$mock->expects($this->once())->method('charge')->with(100)->willReturn(true);\n$mock->method('isFinalMethod')->willReturn(false);\n```\nAssume `isFinalMethod()` is declared `final` on the real `PaymentGateway` class.",
+      "expected_output": "Flags that final methods cannot be doubled in PHPUnit \u2014 configuring `->method('isFinalMethod')` on a final method has no effect; the double will run the real final method's implementation instead of the stubbed return value. Suggests extracting an interface or wrapping the class if that method's behavior needs to be controlled in tests. The charge() expectation itself (once(), with(100), willReturn(true)) is fine as written.",
+      "assertions": [
+        "response identifies that final methods cannot be doubled/mocked in PHPUnit",
+        "response states the stub configuration on isFinalMethod will be silently ineffective (real implementation runs instead)",
+        "response does not flag the charge() mock setup (once()/with()/willReturn()) as incorrect",
+        "response suggests a workaround such as extracting an interface or wrapping the final method",
+        "response correctly identifies $this->once() as an invocation-count matcher meaning exactly one call is expected"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 10,
+      "prompt": "our coverage report keeps showing 0% for files nobody has written tests for yet, and management thinks that's inflating our 'untested code' numbers artificially. also our CI coverage run is really slow. explain what's controlling this and what our options are.",
+      "expected_output": "Explains includeUncoveredFiles (default true) is why never-executed files still appear in the report at 0% rather than disappearing from the numbers, which is normally desirable \u2014 turning it off would hide dead/untested files rather than fix any inflation. For speed, notes coverage requires a driver (Xdebug or PCOV), that Xdebug in particular slows runs significantly, and recommends running coverage as a separate CI job rather than the default local loop; --no-coverage or omitting coverage flags entirely skips it.",
+      "assertions": [
+        "response names includeUncoveredFiles and explains its default is true",
+        "response clarifies that turning includeUncoveredFiles off would make untested files disappear from the report rather than reduce genuinely inflated numbers",
+        "response names at least one coverage driver (Xdebug or PCOV)",
+        "response recommends running coverage analysis as a separate/less-frequent CI job due to performance cost",
+        "response mentions --no-coverage (or omitting --coverage-* flags) as the way to skip coverage for fast local runs"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 11,
+      "prompt": "quick one: what's the difference between assertEquals and assertSame, and which one should I default to for comparing two arrays of scalars?",
+      "expected_output": "assertEquals does loose/type-juggling comparison (e.g. deep equality ignoring type, 1 == '1'); assertSame does strict === comparison, requiring same type/value (and same object identity for objects). Recommends defaulting to assertSame unless loose comparison is specifically wanted (e.g. float tolerance via delta, or intentionally ignoring type differences), including for arrays of scalars.",
+      "assertions": [
+        "response states assertEquals performs loose/type-juggling comparison",
+        "response states assertSame performs strict (===) comparison",
+        "response recommends assertSame as the default choice",
+        "response mentions object identity or type-strictness as part of what assertSame checks that assertEquals does not",
+        "response does not claim assertEquals and assertSame behave identically"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 12,
+      "prompt": "I saw this in a coworker's PR for our PHPUnit 9 project and want a second opinion:\n```php\n#[DataProvider('additionProvider')]\npublic function testAdd(int $a, int $b, int $expected): void\n```\nThey said attributes are the 'modern' way so we should switch everything to this style. Good idea?",
+      "expected_output": "Explains that in PHPUnit 9, doc-comment annotations (like `/** @dataProvider additionProvider */`) are the primary/native metadata mechanism per the 9.x manual; PHP 8 attribute support for a subset of annotations (including DataProvider, Test, Depends, Group, Covers) was added as a forward-compatible alternative in later 9.x point releases and both forms work side by side, but not every annotation has an attribute equivalent in 9.x \u2014 attributes only become the norm in PHPUnit 10. Recommends against a blanket switch since some annotations (e.g. @requires, @testWith) may lack an attribute form in 9.x, and either form is acceptable for this specific one.",
+      "assertions": [
+        "response states that doc-comment annotations are the primary/native mechanism for PHPUnit 9, not attributes",
+        "response acknowledges PHP 8 attributes for a subset of annotations work in later PHPUnit 9.x releases as a forward-compatible alternative",
+        "response explicitly warns that not every annotation has an attribute equivalent in PHPUnit 9",
+        "response does not claim attributes are the primary or exclusively-documented mechanism in PHPUnit 9's manual",
+        "response does not tell the coworker to blanket-convert every annotation to attribute form without qualification"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 13,
+      "prompt": "We have some legacy TestListener classes registered via <listeners> in our phpunit.xml on PHPUnit 9. Someone on the team insists that's dead code because 'listeners were removed already' and wants to delete the config block. Is that true?",
+      "expected_output": "Clarifies that TestListener was deprecated as of PHPUnit 8.0 but is still functional in PHPUnit 9.x \u2014 it was only fully removed in PHPUnit 10. The <listeners> block is not dead code on 9.x and deleting it would break the registered listener classes. Recommends, if planning ahead for a 10.x upgrade, migrating to the Hook interfaces (BeforeFirstTestHook/AfterLastTestHook/etc. registered via <extensions>) since those are the closer conceptual match to what TestListener's replacement became, rather than deleting the listeners outright now.",
+      "assertions": [
+        "response states TestListener is deprecated since PHPUnit 8.0 but still functional/supported in PHPUnit 9.x",
+        "response states TestListener was fully removed only in PHPUnit 10, not in 9.x",
+        "response advises against deleting the <listeners> config block on a 9.x codebase",
+        "response mentions the Hook interfaces (e.g. BeforeFirstTestHook/AfterLastTestHook) registered via <extensions> as the forward-looking alternative",
+        "response does not claim <listeners> is already non-functional on PHPUnit 9"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 14,
+      "prompt": "I'm debugging a failing test \u2014 it calls a function under test that internally does `trigger_error('legacy param format', E_USER_DEPRECATED)`, and my test just blows up with an unexpected error even though I never assert anything about it. Why, and how do I make the test pass if that deprecation is actually expected/fine?",
+      "expected_output": "Explains that PHPUnit 9 installs its own error handler during test execution, converting PHP errors/warnings/notices/deprecations raised by code under test into exceptions \u2014 so an unhandled trigger_error(E_USER_DEPRECATED) surfaces as a test error by default rather than being silently printed. To make it pass, either call $this->expectDeprecation() (and optionally expectDeprecationMessage()) before the code runs, since PHPUnit stops the test as soon as the exception fires, or suppress it with the @ operator on the call if it's just an incidental side effect not worth asserting on.",
+      "assertions": [
+        "response explains PHPUnit converts PHP errors/warnings/notices/deprecations from code under test into exceptions during a test run",
+        "response names expectDeprecation() (and/or expectDeprecationMessage()) as the way to explicitly assert on the deprecation",
+        "response notes expect*() calls must be made before the code that triggers the deprecation runs",
+        "response mentions the @ operator as an alternative way to suppress rather than assert on the deprecation",
+        "response does not claim the deprecation is simply printed/logged and ignored by default"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 15,
+      "prompt": "give me the exact phpunit flags to: run coverage as clover xml, log junit output, halt on the very first failure, and randomize test order with a fixed seed of 42",
+      "expected_output": "A single command combining --coverage-clover <file>, --log-junit <file>, --stop-on-failure, --order-by=random, and --random-order-seed=42.",
+      "assertions": [
+        "response includes --coverage-clover with a file path argument",
+        "response includes --log-junit with a file path argument",
+        "response includes --stop-on-failure",
+        "response includes --order-by=random (or --order-by random)",
+        "response includes --random-order-seed=42 (or --random-order-seed 42) using the value 42"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 16,
+      "prompt": "I found a tutorial showing a custom `PHPUnit\\Event\\Subscriber` class hooking into test lifecycle events, using it to send a Slack message when a test fails. We're on PHPUnit 9 \u2014 can I use this approach?",
+      "expected_output": "No \u2014 PHPUnit\\Event and the Events subsystem don't exist in PHPUnit 9; that's a PHPUnit 10+ feature, and there is no forward-compatible way to use PHPUnit\\Event on 9.x. For the same goal on 9.x, implement PHPUnit\\Framework\\TestListener (deprecated since 8.0 but functional) registered via <listeners>, or preferably the Hook interfaces (e.g. AfterLastTestHook / a failure-observing hook) registered via <extensions>, since Hooks are the closer conceptual match to the eventual Events API and are recommended over TestListener for new 9.x extension code.",
+      "assertions": [
+        "response states PHPUnit\\Event / the Events subsystem does not exist in PHPUnit 9 and is a PHPUnit 10+ feature",
+        "response explicitly says there is no way to use the PHPUnit\\Event API on 9.x (no forward-compatible option)",
+        "response proposes TestListener and/or the Hook interfaces (BeforeFirstTestHook/AfterLastTestHook/etc.) as the 9.x-native alternative",
+        "response mentions these are registered via <listeners> (TestListener) or <extensions> (Hook interfaces) in phpunit.xml",
+        "response does not present the tutorial's PHPUnit\\Event\\Subscriber code as usable on PHPUnit 9 as-is"
+      ],
+      "phpunit_version": 9
+    },
+    {
+      "id": 17,
+      "prompt": "I'm writing a fresh PHPUnit 10 test class for a Money value object. Can you show me how to structure the test with a data provider for an add() method that takes two amounts and an expected sum?",
+      "expected_output": "A test class extending PHPUnit\\Framework\\TestCase with a public static provider method (not named test*) returning named datasets, wired to the test method via the #[DataProvider('...')] attribute rather than a doc-comment @dataProvider annotation, and using assertSame for the strict comparison.",
+      "assertions": [
+        "response defines a public static method that returns an array/iterable and does not start with 'test'",
+        "response uses the #[DataProvider('providerMethodName')] attribute syntax, not a /** @dataProvider */ doc-comment",
+        "response uses string keys for datasets (named datasets) rather than plain numeric arrays",
+        "response uses assertSame (not assertEquals) for comparing the summed amounts",
+        "the test class extends PHPUnit\\Framework\\TestCase and the file is named to end in Test.php"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 18,
+      "prompt": "quick q - what flags do i pass to phpunit to only run tests tagged slow, and also make the run fail if there are any risky tests, without stopping the whole suite early on the first one?",
+      "expected_output": "An explanation pointing to --group slow for selecting tests tagged with #[Group('slow')], and --fail-on-risky to make risky tests turn the exit code non-zero without halting execution early (as opposed to --stop-on-risky, which does halt early).",
+      "assertions": [
+        "response mentions the --group <name> flag for selecting by group",
+        "response mentions --fail-on-risky as distinct from --stop-on-risky",
+        "response clarifies that --fail-on-risky affects exit code but does not stop the run mid-execution",
+        "response does not suggest --stop-on-risky as the answer to 'without stopping early'"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 19,
+      "prompt": "In our PHPUnit 10 suite, setUp() connects to a test database, but a subclass overrode setUp() and forgot to call parent::setUp(), so the connection silently never happens and tests fail with confusing null-reference errors. What's the more robust pattern here?",
+      "expected_output": "Recommend replacing the parent::setUp()-chaining pattern with the #[Before] attribute on a dedicated method (e.g. connectToDatabase()), since PHPUnit calls all #[Before]-marked methods automatically regardless of subclass overrides, eliminating the silent-breakage risk of forgetting a parent:: call. Also note tearDown() runs even on failure for cleanup, and setUpBeforeClass/tearDownAfterClass are for shared once-per-class fixtures, not per-test state.",
+      "assertions": [
+        "response recommends the #[Before] attribute as an alternative to overriding setUp()",
+        "response explains that #[Before]-marked methods are called automatically without needing a parent:: chain",
+        "response identifies the root cause as the subclass forgetting to call parent::setUp()",
+        "response does not recommend sharing a single database connection fixture via setUpBeforeClass for per-test mutable state"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 20,
+      "prompt": "review this test - is it going to actually work correctly?\n\n```php\nfinal class InvoiceTest extends TestCase\n{\n    /**\n     * @dataProvider amountProvider\n     */\n    #[DataProvider('amountProvider')]\n    public function testTotal(int $amount): void\n    {\n        $this->assertGreaterThan(0, $amount);\n    }\n\n    public static function amountProvider(): array\n    {\n        return [[5], [10]];\n    }\n}\n```",
+      "expected_output": "Point out that both the doc-comment @dataProvider annotation and the #[DataProvider] attribute are present on the same method; in PHPUnit 10, when both are present, attributes win and the annotation is silently ignored (not an error) \u2014 so the test still works correctly today, but the redundant annotation should be removed since it's dead weight and annotations are deprecated (slated for removal in PHPUnit 12). Also note the datasets use plain numeric keys rather than named datasets, which would give less readable failure output.",
+      "assertions": [
+        "response states that when both an attribute and an annotation are present, the attribute takes precedence",
+        "response explicitly says the doc-comment annotation is silently ignored rather than causing an error or duplicate execution",
+        "response recommends removing the redundant @dataProvider annotation since annotations are deprecated",
+        "response notes the datasets are not named (no string keys), which would improve failure-output readability"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 21,
+      "prompt": "One of our tests in PHPUnit 10 is showing up as 'R' in the progress output even though it passes. The test just calls a method and checks nothing throws. What's going on and how do I fix it properly?",
+      "expected_output": "Explain that 'R' means the test was marked risky, and the most common cause here is that the test performs no assertions and has no mock expectations configured, so PHPUnit can't tell it actually verified anything. The correct fix, since not throwing is the genuinely intended behavior, is to add #[DoesNotPerformAssertions] to the test method rather than adding a throwaway assertTrue(true) or disabling the risky check globally.",
+      "assertions": [
+        "response identifies 'R' as PHPUnit's risky-test marker in progress output",
+        "response explains the specific risky cause is 'no assertions performed and no mock expectations configured'",
+        "response recommends the #[DoesNotPerformAssertions] attribute as the fix",
+        "response does not recommend disabling the check globally via --dont-report-useless-tests as the primary fix for this specific intended case"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 22,
+      "prompt": "I need to double an Observer interface in a PHPUnit 10 test and verify update() gets called exactly once with a specific argument. Write that test.",
+      "expected_output": "A test using createMock(Observer::class), then $mock->expects($this->once())->method('update')->with($this->identicalTo(...)) before exercising the subject under test that should invoke the collaborator.",
+      "assertions": [
+        "response uses createMock(Observer::class) rather than createStub for verifying call behavior",
+        "response uses $this->expects($this->once()) as the invocation-count matcher",
+        "response chains ->method('update')->with(...) to constrain the call arguments",
+        "response sets up expectations before invoking the code under test, not after"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 23,
+      "prompt": "Our team lead this morning said 'PHPUnit's coverage config uses <filter> and <whitelist> like it always has' while reviewing our phpunit.xml for the 10.x upgrade \u2014 can you check our config is actually right for PHPUnit 10?",
+      "expected_output": "Correct the team lead: in PHPUnit 10, <filter>/<whitelist> were removed and replaced by the <source> element, which now drives not just coverage inclusion/exclusion but also error/deprecation/notice/warning attribution (via restrictDeprecations/restrictNotices/restrictWarnings). Any phpunit.xml still using <filter> or <whitelist> needs to be migrated to <source><include>/<exclude><directory suffix=\".php\">.",
+      "assertions": [
+        "response explicitly states <filter>/<whitelist> is removed/gone in PHPUnit 10",
+        "response names <source> as the replacement element",
+        "response mentions <source> also affects error/deprecation/notice/warning attribution, not only coverage",
+        "response corrects the incorrect claim rather than agreeing that <filter>/<whitelist> is still current for PHPUnit 10"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 24,
+      "prompt": "CI keeps skipping our coverage report with 'no code coverage driver available' even though php -m | grep pcov shows it's loaded on the box. Suite runs fine otherwise. What am I missing?",
+      "expected_output": "Point out the common gotcha: a coverage extension can be enabled for php-fpm but not for the CLI SAPI, which is what actually runs phpunit \u2014 check `php -m` output and php.ini for the CLI binary specifically, and confirm coverage mode is enabled (e.g. xdebug.mode=coverage or PCOV equivalent) for that SAPI. Also mention PHPUnit needs either Xdebug or PCOV; PCOV gives line coverage only and is faster, useful for CI.",
+      "assertions": [
+        "response identifies the CLI-vs-php-fpm SAPI mismatch as the likely root cause",
+        "response advises checking the CLI-specific php.ini/module configuration, not just any php -m output",
+        "response names both Xdebug and PCOV as the two supported coverage drivers",
+        "response notes PCOV only provides line coverage while Xdebug also supports branch/path coverage"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 25,
+      "prompt": "We want to send test results to an internal Slack-like dashboard in real time as tests run, without patching PHPUnit itself \u2014 someone mentioned PHPUnit 10 has some new events thing for this, is that right, and how would I hook into 'a test just failed'?",
+      "expected_output": "Confirm PHPUnit 10 introduced a first-class event system (replacing PHPUnit 9's ad-hoc TestListener-style hooks) where typed, immutable event objects fire at each lifecycle moment. To react to test failures, write an Extension class with a bootstrap() method that registers a Subscriber implementing the Failed event's specific *Subscriber interface (with a notify() method), and register the extension in phpunit.xml under <extensions><bootstrap class=\"...\">.",
+      "assertions": [
+        "response confirms PHPUnit 10 introduced a new first-class event system",
+        "response states this event system replaced PHPUnit 9's older listener-style extension mechanism",
+        "response describes implementing an Extension class with a bootstrap() method",
+        "response describes a Subscriber class implementing a specific *Subscriber interface with a notify() method",
+        "response mentions registering the extension via <extensions><bootstrap class=\"...\"> in phpunit.xml"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 26,
+      "prompt": "explain markTestIncomplete vs markTestSkipped in phpunit 10, when do i use which, and is there a better way than manually checking extension_loaded() in setUp for conditional skips",
+      "expected_output": "markTestIncomplete flags a not-yet-implemented test (shows as 'I', doesn't count as pass/fail) while markTestSkipped flags a test that can't run in the current environment (shows as 'S'); both are preferable to an empty body or commenting the test out. For static environmental conditions like a missing PHP extension, PHPUnit 10 offers declarative requirement attributes such as #[RequiresPhpExtension('pgsql')] (plus #[RequiresPhp], #[RequiresOperatingSystemFamily], etc.) as a cleaner alternative to manual markTestSkipped() logic in setUp().",
+      "assertions": [
+        "response distinguishes markTestIncomplete (not yet implemented, shows as 'I') from markTestSkipped (environment-dependent, shows as 'S')",
+        "response recommends #[RequiresPhpExtension('pgsql')] or a similar Requires* attribute as the better alternative for static environment checks",
+        "response notes neither incomplete nor skipped tests count as pass or fail",
+        "response mentions at least one other Requires* attribute (e.g. RequiresPhp, RequiresOperatingSystemFamily) beyond RequiresPhpExtension"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 27,
+      "prompt": "Here's our test directory layout \u2014 is this going to actually get picked up and run correctly by PHPUnit 10?\n\ntests/\n  unit/\n    Canvas/\n      CanvasTests.php\n  integration/\n    Canvas/\n      CanvasIntegration.php",
+      "expected_output": "Flag that PHPUnit's directory-based discovery only picks up files ending in Test.php (singular 'Test', not 'Tests'), so CanvasTests.php and CanvasIntegration.php would both be silently skipped by default discovery. Recommend renaming to CanvasTest.php and CanvasIntegrationTest.php, and note the unit/integration split is otherwise a good pattern for selective running via testsuites.",
+      "assertions": [
+        "response flags that files must end in exactly 'Test.php' for discovery, not 'Tests.php' or other suffixes",
+        "response calls out both CanvasTests.php and CanvasIntegration.php as misnamed for auto-discovery",
+        "response suggests renaming the files to end in Test.php",
+        "response does not claim the given filenames will be picked up correctly as-is"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 28,
+      "prompt": "we have a legacy PHPUnit 10 test suite full of /** @test */ and /** @dataProvider */ doc comments from years ago. do we need to rewrite all of that right now before we can upgrade phpunit, or can it wait?",
+      "expected_output": "Clarify that in PHPUnit 10 these annotations are deprecated but still fully functional \u2014 they don't need to be migrated to run today. However they will be removed in PHPUnit 12, so migration (to #[Test], #[DataProvider(...)], etc., per the migration map) should happen before upgrading past 10.x, not necessarily right now. Also flag the exception: @codeCoverageIgnore/@codeCoverageIgnoreStart/@codeCoverageIgnoreEnd in production code are not deprecated and have no removal timeline, so those don't need migrating at all.",
+      "assertions": [
+        "response states the annotations still work in PHPUnit 10 despite being deprecated",
+        "response states they are slated for removal specifically in PHPUnit 12",
+        "response says migration is not urgent for staying on PHPUnit 10 but is needed before upgrading to 12",
+        "response calls out @codeCoverageIgnore (and variants) as the exception that is not deprecated and has no removal timeline"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 29,
+      "prompt": "Write a phpunit.xml for PHPUnit 10 that runs tests under tests/unit, generates HTML and Clover coverage for src/, and excludes src/generated from coverage.",
+      "expected_output": "An XML config using the phpunit.xsd schema pinned to 10.5, a <testsuites> block pointing at tests/unit, and coverage scoping done via the new <source><include>/<exclude> element (not <filter>/<whitelist>), with a separate <coverage><report> block containing <html outputDirectory=...> and <clover outputFile=...>.",
+      "assertions": [
+        "response uses <source><include><directory suffix=\".php\">src</directory></include></source> style coverage inclusion",
+        "response excludes src/generated via <source><exclude>, not via a <filter>/<whitelist> element",
+        "response places <html> and <clover> report elements under <coverage><report>",
+        "response does not use the PHPUnit 9-style <filter>/<whitelist> elements anywhere",
+        "response references the testsuites element pointing to tests/unit"
+      ],
+      "phpunit_version": 10
+    },
+    {
+      "id": 30,
+      "prompt": "I'm on PHPUnit 11. I wrote this test:\n\n```php\npublic function testThrowsOnNegativeAmount(): void\n{\n    new Money(-1);\n    $this->expectException(InvalidArgumentException::class);\n    $this->expectExceptionMessage('must be positive');\n}\n```\n\nIt's not catching the exception message the way I expect and I'm not sure `expectExceptionMessage` is even doing what I think \u2014 does it need an exact match? Also can you fix the ordering bug if there is one.",
+      "expected_output": "The agent identifies two problems: (1) the expect* calls must be placed BEFORE the code that throws, since PHPUnit sets up expectations first \u2014 the exception is thrown before expectException/expectExceptionMessage are ever registered, so the test would error instead of pass; (2) expectExceptionMessage performs a substring/contains check against the actual exception message, not an exact match \u2014 for exact matching or pattern matching the agent should mention expectExceptionMessageMatches($regex) as the alternative. The agent provides corrected code with expect* calls moved above `new Money(-1);`.",
+      "assertions": [
+        "The response states that expectException()/expectExceptionMessage()/expectExceptionCode() must be called before the code that throws the exception",
+        "The response explains that expectExceptionMessage() checks for a substring/contains match, not an exact string match",
+        "The response mentions expectExceptionMessageMatches() as the regex-based alternative",
+        "The corrected code shown reorders the expect* calls above the `new Money(-1);` line"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 31,
+      "prompt": "our CI pipeline for a PHPUnit 11 project shows the build green even though the last run logged a bunch of deprecation warnings and one skipped test. I want CI to actually fail in that situation. what do I add to the phpunit command?",
+      "expected_output": "The agent explains that PHPUnit's default process exit code only reflects Errored/Failed outcomes \u2014 deprecations, warnings, skips, incomplete, notices and risky flags are 'issues' layered on top of the outcome and don't affect exit code by default. It recommends adding --fail-on-deprecation and --fail-on-skipped (or the --fail-on-all-issues shorthand, optionally paired with --do-not-fail-on-<type> to carve out exceptions), and notes the equivalent can also be set as XML attributes like failOnWarning/failOnRisky in phpunit.xml.",
+      "assertions": [
+        "The response states that by default the exit code only reflects Errored/Failed outcomes, not issues like deprecations/warnings/skips",
+        "The response names at least two specific flags among --fail-on-deprecation, --fail-on-skipped, --fail-on-warning, --fail-on-risky, --fail-on-incomplete, --fail-on-notice",
+        "The response mentions the --fail-on-all-issues shorthand as an option",
+        "The response mentions --do-not-fail-on-<type> as a way to carve out an exception when using --fail-on-all-issues"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 32,
+      "prompt": "I have a base test case class with a setUp() that connects to an in-memory sqlite db, and a subclass that overrides setUp() to add more fixtures. Weirdly the sqlite connection is null in the subclass's tests. what's going on and what's the PHPUnit 11 idiomatic fix?",
+      "expected_output": "The agent explains the classic gotcha: overriding setUp() in a subclass without calling parent::setUp() means the parent's fixture logic silently doesn't run \u2014 there's no error, the connection is just never created. It gives the immediate fix (call parent::setUp() at the top of the override) but also recommends PHPUnit 11's preferred alternative: use #[Before] / #[After] attributed methods instead of overriding setUp()/tearDown(), since multiple #[Before] methods can coexist across a class hierarchy without the inheritance footgun.",
+      "assertions": [
+        "The response identifies that the subclass's setUp() override failed to call parent::setUp()",
+        "The response states this failure is silent (no error is raised) rather than throwing an exception",
+        "The response recommends #[Before] and/or #[After] attributed methods as PHPUnit 11's preferred fix over relying on parent::setUp() chaining",
+        "The response notes multiple #[Before]-attributed methods can coexist across a class hierarchy"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 33,
+      "prompt": "Quick one \u2014 in a PHPUnit 11 project I want to run only the tests tagged as slow, and separately I want to list every suite defined in phpunit.xml without running anything. Give me the exact commands.",
+      "expected_output": "The agent gives `vendor/bin/phpunit --group slow` to run tests tagged #[Group('slow')], and `vendor/bin/phpunit --list-suites` to enumerate the named <testsuite> entries in phpunit.xml without executing tests. It may also mention --exclude-group slow and --list-groups as related commands, and that #[Group] cuts across directory structure (i.e. it's independent of the tests/unit vs tests/integration directory split).",
+      "assertions": [
+        "The response gives the exact command `vendor/bin/phpunit --group slow`",
+        "The response gives the exact command `vendor/bin/phpunit --list-suites`",
+        "The response identifies #[Group('slow')] as the attribute used to tag a test class or method as slow"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 34,
+      "prompt": "Why does PHPUnit mark this test as risky even though it passes?\n\n```php\npublic function testConnectionIsConfigured(): void\n{\n    $connection = new Connection($this->config);\n    $connection->connect();\n}\n```\n\nIt genuinely doesn't need an assertion, it's just checking connect() doesn't throw. how do I make PHPUnit stop flagging it without turning off the check for the whole suite?",
+      "expected_output": "The agent explains the test is flagged risky because beStrictAboutTestsThatDoNotTestAnything is true by default in PHPUnit 11, and a test that runs without calling any assertion is considered risky ('no assertions'). Rather than globally disabling the check (--dont-report-useless-tests or beStrictAboutTestsThatDoNotTestAnything=\"false\"), it recommends adding the #[DoesNotPerformAssertions] attribute to this specific test method to declare the no-assertion behavior is intentional.",
+      "assertions": [
+        "The response identifies 'no assertions' / beStrictAboutTestsThatDoNotTestAnything (default true) as the reason the test is risky",
+        "The response recommends the #[DoesNotPerformAssertions] attribute as the per-test fix",
+        "The response distinguishes this from disabling the check suite-wide (e.g. does not just tell the user to set beStrictAboutTestsThatDoNotTestAnything to false as the primary recommendation)"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 35,
+      "prompt": "review this test double setup from our PHPUnit 11 suite and tell me if anything here is going to bite us:\n\n```php\n$mock = $this->getMockBuilder(PaymentGateway::class)\n    ->disableOriginalConstructor()\n    ->addMethods(['refundPartial'])\n    ->getMock();\n```",
+      "expected_output": "The agent flags that addMethods() is one of getMockBuilder()'s fine-grained configuration methods that has been soft-deprecated since PHPUnit 10.1 \u2014 it emits deprecation warnings under PHPUnit 11 and is planned for removal in PHPUnit 12, so this code will break on the next major upgrade. It recommends migrating to createStub()/createMock() (plus createConfiguredStub/createConfiguredMock helpers) instead, and notes that if PaymentGateway doesn't already declare refundPartial, doubling an interface that does declare it is the more robust path (addMethods was historically used to add methods not on the original class/interface, which createMock() cannot replicate directly \u2014 worth calling out as a migration wrinkle).",
+      "assertions": [
+        "The response identifies addMethods() as soft-deprecated (deprecated since 10.1, warns in 11, planned removal in PHPUnit 12)",
+        "The response states this will actually break / stop working once the project upgrades to PHPUnit 12, not just PHPUnit 11",
+        "The response recommends createStub()/createMock() (or the createConfigured* helpers) as the modern replacement API",
+        "The response does not claim addMethods() is already removed in PHPUnit 11 (it still works in 11, only warns)"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 36,
+      "prompt": "we have this in a legacy class that we deliberately exclude from coverage:\n\n```php\n/** @codeCoverageIgnore */\nfinal class LegacyReportFormatter { public function format(): string { return ''; } }\n```\n\nSomeone on my team says all doc-comment annotations are deprecated in PHPUnit 11 and we should convert this to an attribute before we upgrade. are they right, and if so what's the attribute equivalent?",
+      "expected_output": "The agent corrects the teammate: while it's true that PHPUnit 11 deprecates doc-comment annotations in general (removal planned for PHPUnit 12) in favor of attributes, @codeCoverageIgnore / @codeCoverageIgnoreStart / @codeCoverageIgnoreEnd are an explicit, called-out exception \u2014 they are not deprecated and have no planned removal, because they apply to arbitrary code (not to test methods/classes) and currently have no PHP-attribute equivalent. The existing @codeCoverageIgnore annotation should be left as-is.",
+      "assertions": [
+        "The response states that @codeCoverageIgnore (and @codeCoverageIgnoreStart/@codeCoverageIgnoreEnd) are explicitly NOT deprecated, unlike other doc-comment annotations",
+        "The response states there is currently no PHP-attribute equivalent for @codeCoverageIgnore",
+        "The response corrects the premise that 'all annotations are deprecated' rather than agreeing with it outright",
+        "The response recommends leaving the existing @codeCoverageIgnore annotation in place rather than converting it"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 37,
+      "prompt": "here's an assertion from an old test file:\n\n```php\n$this->assertContainsOnly('string', $tags, false);\n```\n\nis this still fine to leave as-is on PHPUnit 11, or should I change it?",
+      "expected_output": "The agent flags assertContainsOnly() as soft-deprecated as of PHPUnit 11.5 \u2014 it will emit a warning in PHPUnit 12 and is planned for removal in PHPUnit 13. It recommends migrating now to the per-type variant, e.g. assertContainsOnlyString($tags) (or the relevant assertContainsOnly{Int,Bool,...}() method matching the type being checked), since these are the forward-compatible replacements.",
+      "assertions": [
+        "The response identifies assertContainsOnly() as deprecated (soft-deprecated in 11.5, warning in 12, planned removal in 13)",
+        "The response recommends a specific per-type assertion (e.g. assertContainsOnlyString()) as the replacement",
+        "The response does not claim assertContainsOnly() is already removed or broken in PHPUnit 11 itself"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 38,
+      "prompt": "we're mid-migration on a PHPUnit 11 codebase \u2014 some test methods still use `/** @dataProvider additionProvider */` and I just added `#[DataProvider('additionProvider')]` to the same method thinking PHPUnit would just use whichever fires, or maybe both would combine. did I just create a bug?",
+      "expected_output": "The agent explains PHPUnit 11's precedence rule: PHPUnit looks for metadata in attributes first, and if an attribute is found, the doc-comment annotation for that same metadata is silently ignored (not combined/additive). So the leftover @dataProvider annotation is dead and harmless in this case since #[DataProvider] is doing the actual work, but the agent should still recommend deleting the stale annotation as cleanup, and note more generally that annotations are deprecated in 11 and slated for removal in PHPUnit 12, so it's worth migrating the rest of the file's doc-comment metadata (@covers, @depends, @group, etc.) opportunistically.",
+      "assertions": [
+        "The response states that when both an attribute and its annotation equivalent exist on the same test, only the attribute is honored \u2014 they do not combine",
+        "The response explicitly uses language consistent with 'attributes win' / annotations being ignored once the attribute equivalent is present",
+        "The response mentions annotations are deprecated in PHPUnit 11 with removal planned in PHPUnit 12",
+        "The response recommends removing/cleaning up the now-redundant @dataProvider annotation"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 39,
+      "prompt": "our phpunit.xml for a PHPUnit 11 app has this in the <source> element:\n\n```xml\n<source restrictDeprecations=\"true\">\n    <include><directory>src</directory></include>\n</source>\n```\n\nI copy-pasted this from an older project. does it still do what I think on PHPUnit 11?",
+      "expected_output": "The agent explains that restrictDeprecations was deprecated as of PHPUnit 11.1 \u2014 it still functions in 11.x (soft-deprecated, not yet removed) but has been replaced by three finer-grained flags: ignoreSelfDeprecations, ignoreDirectDeprecations, and ignoreIndirectDeprecations, which separately control whether deprecations from the project's own code, direct calls into third-party code, or transitively-triggered deprecations are surfaced. It recommends migrating the config attribute now (or using --migrate-configuration) rather than leaving the deprecated attribute in place.",
+      "assertions": [
+        "The response states restrictDeprecations was deprecated specifically as of PHPUnit 11.1",
+        "The response names at least two of the three replacement flags: ignoreSelfDeprecations, ignoreDirectDeprecations, ignoreIndirectDeprecations",
+        "The response clarifies restrictDeprecations still works in 11.x (deprecated, not removed) rather than claiming it's already broken",
+        "The response ties these flags to the <source> element in phpunit.xml"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 40,
+      "prompt": "We just turned on strict deprecation handling on our PHPUnit 11 suite and now hundreds of pre-existing deprecation warnings from legacy code are flooding every run and failing CI. We don't have time to fix them all right now but we do want new deprecations caught going forward. what's the standard way to handle this?",
+      "expected_output": "The agent recommends generating a baseline snapshot of the current deprecation issues with `vendor/bin/phpunit --generate-baseline baseline.xml`, then wiring it in via `--use-baseline baseline.xml` (or the equivalent baseline attribute under <source> in phpunit.xml) so existing issues in the snapshot are suppressed while any new deprecation not in the baseline still surfaces and can fail the build. This lets the team turn on strict issue-reporting without being drowned in pre-existing noise.",
+      "assertions": [
+        "The response mentions --generate-baseline (with a filename) to snapshot current issues",
+        "The response mentions --use-baseline (or the baseline attribute in phpunit.xml) to suppress issues already captured in the snapshot",
+        "The response frames this as allowing new deprecations going forward to still surface/fail while old ones are suppressed"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 41,
+      "prompt": "give me the phpunit CLI flags to: run each test in its own process, dump results as JUnit XML, and show colored output always (not just when a TTY is detected). This is for a PHPUnit 11 CI job.",
+      "expected_output": "The agent lists --process-isolation to run each test in its own PHP process (noting it's slow, use sparingly), --log-junit <file> for JUnit XML output, and --colors=always (as opposed to the auto/never variants) to force colored output regardless of TTY detection.",
+      "assertions": [
+        "The response gives --process-isolation for one-process-per-test execution",
+        "The response gives --log-junit with a file argument for JUnit XML output",
+        "The response gives --colors=always (or --colors always) specifically, not just --colors with no value or a different mode",
+        "The response notes --process-isolation is slow / should be used sparingly"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 42,
+      "prompt": "I want to write a small PHPUnit 11 extension that prints a custom message once the whole test run finishes (not per-test, just once at the very end). Walk me through it \u2014 I've never touched the events API before.",
+      "expected_output": "The agent explains PHPUnit 11's typed event system: extensions implement PHPUnit\\Runner\\Extension\\Extension with a bootstrap(Configuration $configuration, Facade $facade, ParameterCollection $parameters): void method, and inside bootstrap() call $facade->registerSubscriber(...) to register one or more subscriber objects. For a 'once at the end of the whole run' hook, the agent identifies PHPUnit\\Event\\TestRunner\\ExecutionFinished as the correct event (not a per-Test event like Test\\Finished), and shows a subscriber class implementing ExecutionFinishedSubscriber with a single notify(ExecutionFinished $event): void method. It also shows wiring the extension into phpunit.xml via <extensions><bootstrap class=\"...\"> with optional <parameter> tags, and notes this event system fully replaces the old TestListener interface (removed in 10, no bridge for legacy listeners).",
+      "assertions": [
+        "The response identifies PHPUnit\\Runner\\Extension\\Extension as the interface a PHPUnit 11 extension implements, with a bootstrap() method",
+        "The response identifies ExecutionFinished (under PHPUnit\\Event\\TestRunner) as the correct event for 'runs once at the end of the whole test run', distinct from a per-test event",
+        "The response shows a subscriber class implementing an *Subscriber interface with a single notify() method",
+        "The response shows registering the subscriber via $facade->registerSubscriber(...) inside bootstrap()",
+        "The response shows wiring the extension into phpunit.xml via an <extensions><bootstrap class=\"...\"> element"
+      ],
+      "phpunit_version": 11
+    },
+    {
+      "id": 43,
+      "prompt": "My test calls the service method first and THEN calls $this->expectException(InvalidArgumentException::class) right after, and PHPUnit just reports the test as failed instead of catching the exception. What am I doing wrong?",
+      "expected_output": "Explain that expectException() (and its siblings expectExceptionMessage(), expectExceptionCode(), expectExceptionMessageMatches(), expectExceptionObject()) must be called BEFORE the code under test is invoked, following an Arrange-Expect-Act pattern rather than Arrange-Act-Assert for exceptions. Show corrected order: set up expectations, then call the throwing code last.",
+      "assertions": [
+        "States that expectException()-family calls must be made before invoking the code that throws, not after",
+        "Names at least one expectException sibling method (expectExceptionMessage, expectExceptionCode, expectExceptionMessageMatches, or expectExceptionObject)",
+        "Provides a corrected code example with the expectation call preceding the method invocation that throws",
+        "Does not suggest wrapping the call in a try/catch as the primary fix"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 44,
+      "prompt": "I've got a data provider on testAdd with a dataset named 'zero plus one' and I only want to rerun that one case from the CLI, not the whole method. What's the flag?",
+      "expected_output": "Explain the --filter option's dataset-name syntax: --filter 'testAdd@\"zero plus one\"' targets just that named dataset. Also mention the alternative index-based syntax (testAdd#0 or a range like testAdd#1-3) for unnamed datasets, and that named provider array keys become the dataset labels shown in output.",
+      "assertions": [
+        "Gives the exact filter syntax testAdd@\"zero plus one\" (method name, @, quoted dataset name)",
+        "Mentions that named array keys in the data provider become the readable dataset labels used by --filter",
+        "Mentions the index/range alternative syntax (e.g. testMethodName#0 or testMethodName#1-3) for datasets without names"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 45,
+      "prompt": "We have an abstract base TestCase with a protected setUp() that wires up a logger, and a subclass that also overrides setUp() for its own fixture \u2014 someone forgot to call parent::setUp() in the subclass and now the logger is null in every test. How do we stop this from happening again across the whole suite?",
+      "expected_output": "Recommend migrating from overriding setUp()/tearDown() to the attribute-based lifecycle hooks #[Before]/#[After] (and #[BeforeClass]/#[AfterClass] for static, once-per-class setup), because PHPUnit invokes every method carrying the attribute up the inheritance chain automatically \u2014 eliminating the 'forgot to call parent::setUp()' class of bug entirely. Mention priority ordering (higher priority runs first for #[Before]) if multiple hook methods exist.",
+      "assertions": [
+        "Recommends #[Before]/#[After] attributes specifically as the fix, framed as avoiding the missed parent::setUp() bug",
+        "States that PHPUnit calls every #[Before]-attributed method up the inheritance chain without needing manual parent:: chaining",
+        "Mentions the priority parameter for ordering multiple #[Before] or #[After] methods",
+        "Does not claim setUp()/tearDown() overriding is forbidden \u2014 only that the attribute form is preferred/recommended"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 46,
+      "prompt": "Write a phpunit.xml for our repo: a 'unit' suite over tests/unit, an 'integration' suite over tests/integration that skips tests/integration/slow, and a 'smoke' suite that's just one specific file, tests/smoke/FirstTest.php.",
+      "expected_output": "Produce a valid phpunit.xml with a <testsuites> block containing three <testsuite> elements matching the spec: unit with a <directory>, integration with a <directory> plus an <exclude> for the slow subdirectory, and smoke with a <file> entry rather than a <directory>. Root element should carry bootstrap and the version-matched xsi:noNamespaceSchemaLocation pointing at the 12.5 schema.",
+      "assertions": [
+        "The integration <testsuite> includes an <exclude>tests/integration/slow</exclude> element alongside its <directory>",
+        "The smoke <testsuite> uses a <file> element (not <directory>) pointing at tests/smoke/FirstTest.php",
+        "The root <phpunit> element references a schema URL under schema.phpunit.de/12.5/ (or the project's exact patch version)",
+        "All three testsuite names (unit, integration, smoke) appear exactly as specified"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 47,
+      "prompt": "This test passes green in CI but I noticed it's listed under 'risky' in the summary \u2014 the method body only calls a setter and never calls any assertion. Is that actually a problem or just noise I can ignore?",
+      "expected_output": "Explain this is the 'useless test' risky check \u2014 a test with no assertions and no mock expectations is flagged as risky by default (on unless --do-not-report-useless-tests is passed), because a passing test that never asserts anything gives false confidence. Recommend adding a real assertion (or #[DoesNotPerformAssertions] if that's genuinely intentional) rather than suppressing the check.",
+      "assertions": [
+        "Identifies this specifically as the 'useless test' / no-assertions risky-test check",
+        "States this check is on by default and can only be disabled via --do-not-report-useless-tests",
+        "Mentions #[DoesNotPerformAssertions] as the correct way to mark an intentionally assertion-free test, rather than just suppressing the check globally"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 48,
+      "prompt": "Reviewing a colleague's PR \u2014 this test creates a stub with createStub(DatabaseInterface::class), then does $stub->method('query')->with('SELECT 1')->willReturn([]), and elsewhere there's $mock->expects($this->any())->method('save'). Any concerns before I approve?",
+      "expected_output": "Flag two PHPUnit-12-specific deprecations: (1) calling ->with() on a createStub()-created double is deprecated in 12 \u2014 argument verification requires createMock() instead, since stubs are meant to control return values, not verify calls; (2) ->expects($this->any()) is deprecated \u2014 when call count genuinely doesn't matter, use createStub() rather than a mock with an any() matcher. Recommend concrete fixes: switch the query double to createMock() if argument matching matters, and replace the any()-matcher mock with a plain stub.",
+      "assertions": [
+        "States that calling ->with() on a stub (created via createStub) is deprecated in PHPUnit 12",
+        "States that ->expects($this->any()) is deprecated in PHPUnit 12",
+        "Recommends createMock() as the correct double type when argument verification via ->with() is actually needed",
+        "Recommends createStub() as the replacement when call count truly doesn't matter, instead of a mock with any()"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 49,
+      "prompt": "I added a match expression with 4 arms to our pricing calculator, wrote a test that only exercises one arm, and the HTML coverage report still shows the whole match block as 100% covered. Is my report lying to me?",
+      "expected_output": "Explain the known PHPUnit 12 gotcha: match expression arms report coverage unreliably under both PCOV and Xdebug \u2014 the whole match block can show as covered even when individual arms were never executed, because coverage reflects bytecode execution rather than literal source-line/arm granularity. Recommend not trusting match-arm-level coverage numbers and instead writing explicit tests for each arm to get real confidence.",
+      "assertions": [
+        "Explicitly names this as a known/documented gotcha with match expression coverage reporting in PHPUnit 12",
+        "States that both PCOV and Xdebug can show a match block as covered even when some arms were never executed",
+        "Recommends writing explicit per-arm tests rather than trusting the coverage percentage for match blocks",
+        "Mentions that coverage reflects bytecode execution rather than literal source lines as the underlying cause"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 50,
+      "prompt": "Old test suite has `$this->assertContainsOnly('string', $values);` scattered everywhere. Is that still fine to use in PHPUnit 12, or should I be replacing it?",
+      "expected_output": "State that assertContainsOnly()/assertNotContainsOnly() are hard-deprecated in PHPUnit 12 and slated for removal in PHPUnit 13, so they should be replaced now rather than left alone. Recommend the specific typed variants (e.g. assertContainsOnlyString(), assertContainsOnlyInt()) as the direct replacement for the string-type case shown.",
+      "assertions": [
+        "States assertContainsOnly()/assertNotContainsOnly() are hard-deprecated in PHPUnit 12",
+        "States they are slated for removal in PHPUnit 13 (not merely 'deprecated' with no removal timeline)",
+        "Names assertContainsOnlyString() (or the equivalent typed variant) as the concrete replacement for the 'string' type check shown in the example",
+        "Advises replacing the calls now rather than treating the deprecation as safe to ignore indefinitely"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 51,
+      "prompt": "We're migrating a legacy suite to PHPUnit 12. This CalculatorTest still has `/** @dataProvider additionProvider */` and `/** @covers Calculator */` docblocks above the test methods, and now testAdd is failing with a TypeError about missing arguments even though the provider method is right there in the class. What's going on?",
+      "expected_output": "Explain that PHPUnit 12 has fully removed docblock-annotation support \u2014 @dataProvider, @covers, @group, @depends, @test etc. are no longer read at all, so those docblocks are now just inert comments, silently ignored rather than erroring. The TypeError is happening because testAdd is being invoked with zero arguments since PHPUnit never wired up the data provider. Fix: replace #[DataProvider('additionProvider')] and #[CoversClass(Calculator::class)] PHP attributes on the method/class in place of the removed docblocks.",
+      "assertions": [
+        "States that docblock annotations (@dataProvider, @covers, etc.) are fully removed in PHPUnit 12, not merely deprecated",
+        "Explicitly says the leftover docblocks are silently ignored (treated as plain comments) rather than causing an error or warning themselves",
+        "Correctly diagnoses the TypeError as testAdd being called with no arguments because the data provider was never wired up",
+        "Provides the attribute replacement #[DataProvider('additionProvider')] on the test method and #[CoversClass(Calculator::class)] on the class"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 52,
+      "prompt": "Set up coverage reporting and Open Test Reporting logging in our phpunit.xml \u2014 we want an HTML coverage report in build/coverage-html and OTR output for our CI pipeline, scoped so vendor code and generated files under src/generated don't pollute either report.",
+      "expected_output": "Produce phpunit.xml fragments: a <source> block with <include><directory suffix=\".php\">src</directory></include> and <exclude><directory suffix=\".php\">src/generated</directory></exclude> to scope both coverage and issue reporting to first-party code; a <coverage><report><html outputDirectory=\"build/coverage-html\"/></report></coverage> block; and a <logging><otr outputFile=\"...\"/></logging> entry, noting OTR is the current recommended machine-readable log format alongside legacy JUnit.",
+      "assertions": [
+        "Includes a <source> element with <include> pointing at src and <exclude> excluding src/generated",
+        "Includes a <coverage><report><html outputDirectory=\"build/coverage-html\"/> element matching the requested path",
+        "Includes a <logging><otr outputFile=...\"/> element for Open Test Reporting",
+        "States or implies that <source>'s include/exclude scoping applies to both coverage AND issue/error reporting, not coverage alone"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 53,
+      "prompt": "We just started enforcing deprecation warnings in our legacy PHPUnit 12 suite and it's now flooded with hundreds of pre-existing deprecation notices from old code we can't fix this sprint. How do we stop the noise without turning off deprecation checking entirely?",
+      "expected_output": "Recommend the baseline workflow: run `phpunit --generate-baseline baseline.xml` to snapshot the current set of known issues, then use `phpunit --use-baseline baseline.xml` on subsequent runs so only NEW deprecations (not the pre-existing baselined ones) surface or fail the build. Mention `--ignore-baseline` to temporarily see everything again when auditing, and that this is specifically designed for adopting stricter error-handling incrementally on a legacy codebase.",
+      "assertions": [
+        "Gives the exact command --generate-baseline <file> to snapshot current issues",
+        "Gives the exact command --use-baseline <file> to suppress only the previously-known issues going forward",
+        "Mentions --ignore-baseline as the way to temporarily see all issues again",
+        "Frames the baseline feature as intended for incrementally adopting stricter checks on a legacy codebase, not a permanent way to silence deprecations"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 54,
+      "prompt": "Our CI is green but I just noticed the build log has a bunch of 'D' markers scattered in the progress output \u2014 turns out we're calling several deprecated functions and nobody caught it because the pipeline doesn't fail. How do I make deprecations actually break the build?",
+      "expected_output": "Explain that deprecations, notices, warnings, and risky tests do NOT affect the exit code by default in PHPUnit 12 \u2014 only failures (exit 1) and errors (exit 2) do. Give --fail-on-deprecation as the specific flag to make deprecations fail the build, and mention the broader --fail-on-* family (--fail-on-warning, --fail-on-risky, --fail-on-notice, etc.) plus --fail-on-all-issues as a catch-all, noting --do-not-fail-on-* overrides XML config and wins over --fail-on-*.",
+      "assertions": [
+        "States that deprecations do not affect the exit code by default",
+        "Gives the exact flag --fail-on-deprecation",
+        "Mentions --fail-on-all-issues as the flag that enables all fail-on-* categories at once",
+        "Notes that exit code 0 means all passed, 1 means at least one failure, 2 means at least one error, distinct from deprecation/warning handling"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 55,
+      "prompt": "I want to build a small in-house PHPUnit extension that pings a Slack webhook whenever any test fails, without monkey-patching the runner. What's the supported way to hook into that in PHPUnit 12?",
+      "expected_output": "Explain PHPUnit 12's event system: implement PHPUnit\\Runner\\Extension\\Extension with a bootstrap() method, register a subscriber implementing the matching Subscriber interface for the Test\\Failed event (e.g. a class implementing TestFailedSubscriber with a notify(Failed $event): void method) via $facade->registerSubscriber(...), and register the extension's bootstrap class in phpunit.xml's <extensions><bootstrap class=\"...\"> element. Note subscriptions must be registered before execution starts, since they're sealed once configuration completes.",
+      "assertions": [
+        "Names the Extension interface with a bootstrap(Configuration, Facade, ParameterCollection) method as the entry point",
+        "Identifies the Test\\Failed event and its matching Subscriber interface as the mechanism for reacting to test failures",
+        "Shows registration via $facade->registerSubscriber(...) inside bootstrap()",
+        "Mentions registering the extension in phpunit.xml via <extensions><bootstrap class=\"...\">",
+        "Notes that subscribers must be registered before execution starts because subscriptions are sealed after configuration completes"
+      ],
+      "phpunit_version": 12
+    },
+    {
+      "id": 56,
+      "prompt": "I've got a Money value object and need a test that covers add() for a bunch of amount/currency combos without copy-pasting ten near-identical test methods. Can you write the PHPUnit test for this, the modern way?",
+      "expected_output": "A test class extending TestCase with a single test method using #[DataProvider('...')] (or #[TestWith]/#[TestWithJson] for a small inline set), a public static provider method returning named data sets (string keys), and assertSame() for the exact expected values. Uses PHP attributes, not @dataProvider docblocks.",
+      "assertions": [
+        "Test class extends PHPUnit\\Framework\\TestCase",
+        "Uses the #[DataProvider('methodName')] attribute (or #[TestWith]/#[TestWithJson]) rather than a docblock @dataProvider annotation",
+        "The data provider method is declared public static and returns an array/iterable of argument sets",
+        "Data sets use descriptive string keys (named data sets), not bare numeric indices",
+        "Uses assertSame() rather than assertEquals() for exact scalar/value comparisons",
+        "declare(strict_types=1) appears at the top of the file"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 57,
+      "prompt": "one of our phpunit runs just hangs forever in CI with no output, no crash, nothing. I only want to isolate the one flaky test method (`testProcessesQueueAsync` in QueueProcessorTest) and see what's actually happening step by step.",
+      "expected_output": "Recommends running with --filter to isolate the single method (e.g. --filter 'QueueProcessorTest::testProcessesQueueAsync' or the shortcut form), combined with --debug for verbose per-event tracing to see exactly where execution stalls, and possibly --process-isolation if global/static state is suspected. Explains that --debug gives per-event tracing useful when a run hangs or crashes silently.",
+      "assertions": [
+        "Recommends the --filter flag with a class::method or method-name pattern to isolate the single test",
+        "Recommends --debug specifically for verbose per-event tracing on a hanging/silent-crash run",
+        "Does not suggest --testdox or --compact as the fix for diagnosing a hang (those only affect output formatting)",
+        "Mentions vendor/bin/phpunit as the invocation form"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 58,
+      "prompt": "Our test base class overrides setUp() to connect to a DB, but a subclass forgot to call parent::setUp() and silently broke its tests. I want a fixture setup that can't be forgotten like that, and I need two setup steps that run in a specific order (connect first, then seed).",
+      "expected_output": "Recommends using #[Before] attributes on any-named methods instead of overriding setUp(), since multiple methods can share the #[Before] role without needing a parent:: call chain. Uses the priority parameter (higher priority runs first) to order the connect-then-seed steps, e.g. #[Before(priority: 2)] on the connect method and #[Before(priority: 1)] on the seed method.",
+      "assertions": [
+        "Recommends #[Before] attribute methods instead of overriding setUp() to avoid the missed parent::setUp() problem",
+        "States that multiple methods can share the same #[Before] role",
+        "Uses the priority parameter and states that a higher priority value runs earlier",
+        "Assigns the connect-to-database method a higher priority value than the seed method so connect runs first",
+        "Does not claim priority defaults to running in declaration order without attributes"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 59,
+      "prompt": "We're setting up a fresh project's test suite. Want unit tests and integration tests kept separate so CI can run unit tests on every push but only run integration tests on merge to main. How should I lay this out and configure phpunit.xml?",
+      "expected_output": "Recommends mirroring the src/ tree under tests/unit and tests/integration directories, one test class per SUT class, with a phpunit.xml declaring two <testsuite> entries (name=\"unit\", name=\"integration\") each pointing at its own <directory>. CI runs `phpunit --testsuite unit` on every push and `phpunit --testsuite integration` only on merge; `--list-suites` can confirm what's configured.",
+      "assertions": [
+        "Proposes a tests/unit and tests/integration directory split mirroring the src/ tree",
+        "Shows a <testsuites> XML block with two named <testsuite> elements, each containing a <directory> entry",
+        "Recommends running a specific suite via --testsuite <name>, e.g. phpunit --testsuite unit",
+        "Mentions --list-suites as a way to enumerate configured suites",
+        "Does not conflate testsuites with #[Group] as the mechanism for the unit/integration split"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 60,
+      "prompt": "Got a test that calls a third-party payment gateway sandbox and it fails intermittently maybe 1 in 10 runs \u2014 not our bug, their sandbox is just flaky. I don't want to just delete the test or mark it skipped, what's the PHPUnit 13 way to handle this?",
+      "expected_output": "Recommends the #[Retry(N)] attribute (e.g. #[Retry(3)]), which reruns the test up to N times and stops at the first success \u2014 appropriate for a test at the mercy of an unreliable external dependency, as opposed to #[Repeat] which is for hunting intermittent bugs and stops at first failure. Notes the test method must have a void return type and no #[Depends] attribute to be eligible, and that PHPUnit 13 introduces AttemptErrored/AttemptFailed events so retried attempts still show up in the summary rather than silently vanishing.",
+      "assertions": [
+        "Recommends #[Retry(N)] rather than #[Repeat(N)] for this scenario",
+        "Explains that Retry stops at the first success while Repeat stops at the first failure",
+        "States the test method must have a void return type and must not use #[Depends*] to be eligible for retry",
+        "Mentions that retried tests still show their failed-attempt count in the summary, i.e. flakiness is not hidden",
+        "Does not suggest markTestSkipped() as the fix for a genuinely flaky (as opposed to environment-mismatched) test"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 61,
+      "prompt": "Reviewing a PR from a contractor who clearly hasn't touched this codebase in a while \u2014 they wrote `$this->prophesize(PaymentGateway::class)->charge(Argument::any())->willReturn(true);` in a new test. Does this still work on our PHPUnit 13 setup?",
+      "expected_output": "No \u2014 Prophecy and all other legacy mocking APIs are fully removed in PHPUnit 13; createMock()/createStub() (and the stub/mock builder) are the only test-double API now. The reviewer should flag this as needing a rewrite: e.g. $mock = $this->createMock(PaymentGateway::class); $mock->expects($this->once())->method('charge')->with($this->anything())->willReturn(true); Also worth mentioning sealed doubles (->seal()) as the modern strictness mechanism if the project enables requireSealedMockObjects.",
+      "assertions": [
+        "States explicitly that Prophecy (and other legacy mocking APIs) is fully removed/unsupported in PHPUnit 13, not merely deprecated",
+        "States that createMock()/createStub() (and the stub/mock builder methods like getStubBuilder) are the sole test-double API in PHPUnit 13",
+        "Provides a rewritten example using $this->createMock() with ->expects()->method()->willReturn() replacing the prophesize()/willReturn() call",
+        "Does not claim the prophesize() call will simply keep working under PHPUnit 13",
+        "Mentions ->seal() and/or requireSealedMockObjects as the current strictness mechanism for locking a double against unconfigured calls"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 62,
+      "prompt": "Need to wire up code coverage for our src/ directory, generate an HTML report, but exclude src/generated (it's autogenerated DTOs, no point covering that). Also want the report to still show files nobody's test ever touches, not just files with some coverage.",
+      "expected_output": "Requires an Xdebug or PCOV coverage driver loaded. Configuration via phpunit.xml <source> block with <include><directory suffix=\".php\">src</directory></include> and <exclude><directory suffix=\".php\">src/generated</directory></exclude>, plus includeUncoveredFiles=\"true\" (the default) on <source> so zero-coverage files still appear in the report instead of vanishing. Generate the HTML report via phpunit --coverage-html coverage/ (or a <coverage><report><html outputDirectory=...> XML equivalent).",
+      "assertions": [
+        "States that a coverage driver (Xdebug with coverage mode, or PCOV) must be loaded or coverage flags are no-ops",
+        "Shows a <source> XML block with <include><directory suffix=\".php\">src</directory></include> and an <exclude> entry for src/generated",
+        "Specifies includeUncoveredFiles=\"true\" and explains it makes zero-coverage files still show up in the report",
+        "Shows --coverage-html <dir> (or the <html outputDirectory> XML equivalent) as the command/config to produce the HTML report",
+        "Does not claim coverage can be generated with no Xdebug/PCOV driver present"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 63,
+      "prompt": "Please review this test method:\n\n```php\npublic function testGetActiveUserIds(): void\n{\n    $ids = $this->repository->getActiveUserIds();\n    $this->assertEquals([3, 1, 2], $ids);\n    $this->assertEquals(3, count($ids));\n}\n```",
+      "expected_output": "Critiques two things: assertEquals on the array is a loose comparison that hides type bugs (e.g. '3' vs 3) and is also order-sensitive here even though order may not matter for a set of IDs \u2014 recommend assertSame() if order and type both matter, or one of the order-independent array assertions (assertEqualsCanonicalizing, or assertArraysHaveIdenticalValuesIgnoringOrder) if order genuinely doesn't matter. Also flags assertEquals(3, count($ids)) as reinventing assertCount(3, $ids), which is more specific and produces a better failure diff.",
+      "assertions": [
+        "Flags assertEquals as a loose/type-coercing comparison and recommends a stricter alternative such as assertSame or an order-independent array assertion",
+        "Names at least one order-independent array assertion by its actual method name (e.g. assertEqualsCanonicalizing, assertArraysHaveIdenticalValuesIgnoringOrder, or assertArraysAreIdenticalIgnoringOrder)",
+        "Flags assertEquals(3, count($ids)) and recommends assertCount(3, $ids) instead",
+        "States that more specific assertions produce more useful failure diffs"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 64,
+      "prompt": "Porting some old tests over from a legacy PHPUnit 9 codebase. They're full of stuff like `@dataProvider additionProvider`, `@covers ::add`, `@group slow`, `@depends testEmpty`. What do these become in our PHPUnit 13 setup?",
+      "expected_output": "PHPUnit 13 uses PHP attributes exclusively for test metadata \u2014 docblock @-annotations are not the mechanism at all. @dataProvider -> #[DataProvider('additionProvider')]; @covers -> #[CoversMethod]/#[CoversClass] etc.; @group -> #[Group('slow')]; @depends -> #[Depends('testEmpty')]. Each old docblock annotation should be converted to its native #[...] attribute equivalent, not left as a comment.",
+      "assertions": [
+        "States plainly that PHPUnit 13 uses PHP attributes exclusively and that the old docblock @-annotation syntax is not a supported mechanism",
+        "Converts @dataProvider additionProvider to #[DataProvider('additionProvider')]",
+        "Converts @group slow to #[Group('slow')]",
+        "Converts @depends testEmpty to #[Depends('testEmpty')]",
+        "Converts @covers to one of the #[Covers*] attribute family (e.g. #[CoversMethod] or #[CoversClass])",
+        "Does not suggest leaving the @-annotations in place as still-functional under PHPUnit 13"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 65,
+      "prompt": "Starting a brand new project, need a phpunit.xml from scratch. We want colors on, a bootstrap file, unit and integration suites, HTML + Clover coverage output for src/, and I want unsealed mocks to count as risky so nobody sneaks in a loose mock.",
+      "expected_output": "A phpunit.xml with root attributes bootstrap=\"vendor/autoload.php\", colors=\"true\", and requireSealedMockObjects=\"true\" (making an unsealed mock a risky test), a <testsuites> block with unit and integration <testsuite> entries, a <source> block including src with suffix filtering, and a <coverage><report> block listing <html outputDirectory=...> and <clover outputFile=...>.",
+      "assertions": [
+        "Includes requireSealedMockObjects=\"true\" as the root attribute controlling unsealed-mock riskiness",
+        "Includes colors=\"true\" and a bootstrap attribute pointing at vendor/autoload.php",
+        "Includes a <testsuites> block with separate named <testsuite> entries for unit and integration",
+        "Includes a <source><include><directory suffix=\".php\">src</directory></include></source> block",
+        "Includes a <coverage><report> block with both an <html outputDirectory=...> and a <clover outputFile=...> entry",
+        "Correctly describes requireSealedMockObjects as flagging unsealed mocks as risky, not as making the build fail outright"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 66,
+      "prompt": "Our CI just started failing because a dependency we call into triggers a deprecation warning deep in its own code \u2014 not something we can fix today. I don't want new deprecations from our own code to slip through unnoticed going forward, but I also don't want to be blocked by this one right now. What's the move?",
+      "expected_output": "Use the baseline workflow: run phpunit --generate-baseline baseline.xml to snapshot today's known issues (including this third-party deprecation), then run with phpunit --use-baseline baseline.xml (or <source baseline=\"baseline.xml\">) so only new issues fail the build going forward. Alternatively/additionally, scope failOnDeprecation more narrowly with failOnIndirectDeprecation left off (or failOnSelfDeprecation/failOnDirectDeprecation turned on) so third-party-triggered noise doesn't block CI while your own deprecated usage still does. Baselines only capture issues seen during test execution, not bootstrap-phase or PHPUnit-internal ones.",
+      "assertions": [
+        "Recommends the baseline workflow: --generate-baseline followed by --use-baseline (or the <source baseline=\"...\"> XML equivalent)",
+        "Distinguishes failOnSelfDeprecation / failOnDirectDeprecation / failOnIndirectDeprecation as finer-grained controls by who triggered the deprecation",
+        "States that a baseline only captures issues seen during test execution, not bootstrap-phase or PHPUnit-internal issues",
+        "Mentions --ignore-baseline as the way to temporarily bypass the baseline if needed",
+        "Does not recommend simply suppressing the deprecation with @ or disabling error handling wholesale as the primary fix"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 67,
+      "prompt": "Want our CI pipeline to actually fail the build if any test is risky or throws a PHP warning, not just show green with a warning buried in the output. What flags do I add to the phpunit CLI invocation?",
+      "expected_output": "Add --fail-on-risky and --fail-on-warning to the CI invocation (e.g. phpunit --fail-on-risky --fail-on-warning), which turn otherwise-non-failing risky/warning outcomes into a non-zero exit code. Notes the XML-attribute equivalents failOnRisky=\"true\" and failOnWarning=\"true\" if they prefer to bake it into phpunit.xml instead, and that other fail-on gates exist too (--fail-on-deprecation, --fail-on-notice, --fail-on-incomplete, --fail-on-skipped).",
+      "assertions": [
+        "Recommends --fail-on-risky specifically for risky tests",
+        "Recommends --fail-on-warning specifically for PHP warnings",
+        "Mentions the XML-attribute equivalents (failOnRisky / failOnWarning) as an alternative to CLI flags",
+        "States or implies that without these gates, risky tests and warnings are only counted/displayed and do not change the exit code by default"
+      ],
+      "phpunit_version": 13
+    },
+    {
+      "id": 68,
+      "prompt": "We want a Slack notification posted automatically whenever a test fails during CI, and separately we want visibility into flaky-test retry attempts (we just turned on --retry in CI). Can you sketch a PHPUnit extension that hooks into this?",
+      "expected_output": "A PHPUnit extension class implementing PHPUnit\\Runner\\Extension\\Extension, whose bootstrap() method registers a subscriber implementing PHPUnit\\Event\\Test\\FailedSubscriber (posting to Slack on notify()) and, separately, a subscriber for the new PHPUnit 13 AttemptErrored/AttemptFailed events to log/report individual retry attempts. Registered in phpunit.xml via <extensions><bootstrap class=\"...\"></extensions>, optionally with <parameter> children for config like a webhook URL.",
+      "assertions": [
+        "Defines an extension class implementing PHPUnit\\Runner\\Extension\\Extension with a bootstrap(Configuration, Facade, ParameterCollection) method",
+        "Registers at least one subscriber via $facade->registerSubscriber(...) inside bootstrap()",
+        "Uses a Test\\FailedSubscriber (or equivalent Failed event subscriber) for the Slack-on-failure notification",
+        "Explicitly names AttemptErrored and/or AttemptFailed as the events to subscribe to for retry-attempt visibility, and notes these are new in PHPUnit 13 paired with #[Retry]",
+        "Shows the <extensions><bootstrap class=\"...\"/></extensions> XML registration in phpunit.xml"
+      ],
+      "phpunit_version": 13
+    }
+  ]
+}
