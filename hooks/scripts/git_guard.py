@@ -61,8 +61,16 @@ def find_subcommand(tokens):
     return tokens[i] if i < n else None
 
 
+def join_line_continuations(command_str):
+    # Bash honors a trailing "\" as a line continuation; splitting on raw
+    # newlines without collapsing these first hands shlex a dangling escape
+    # on the truncated line, which raises ValueError and gets treated as a
+    # match for every subcommand check (see command_invokes below).
+    return re.sub(r"\\\n", "", command_str)
+
+
 def command_invokes(command_str, subcommand):
-    for line in command_str.splitlines():
+    for line in join_line_continuations(command_str).splitlines():
         try:
             segments = list(split_segments(line))
         except ValueError:
