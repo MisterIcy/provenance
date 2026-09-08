@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-`provenance` is a **Claude Code plugin** (see `.claude-plugin/plugin.json` / `marketplace.json`), not an application. It has no build step, no compiled artifacts, and no test suite — its content *is* the product: Agent Skills (`SKILL.md` files) and subagent definitions consumed directly by Claude Code at runtime. Changes here are validated by reading/reasoning about the Markdown+frontmatter files, not by running a compiler.
+`provenance` is a **Claude Code plugin** (see `.claude-plugin/plugin.json` / `marketplace.json`), not an application. It has no build step and no compiled artifacts — its content *is* the product: Agent Skills (`SKILL.md` files) and subagent definitions consumed directly by Claude Code at runtime. Changes here are mostly validated by reading/reasoning about the Markdown+frontmatter files, not by running a compiler, with the exception of the executable hook scripts under `hooks/scripts/`, which do have a unit test suite (see below).
 
 ## Commands
 
-There is no build/lint/test tooling. The only executable script in the repo is:
+There is no build/lint tooling. The executable scripts in the repo are:
 
 ```bash
 skills/git-committer-setup/scripts/ingest-commits.sh [count]   # dumps last N commits by git user.email for style-profile ingestion
 skills/mariadb-sql/tests/scripts/run-version.sh <version>      # Docker-verified mariadb-sql test harness, one MariaDB milestone version; run-matrix.sh runs all of them — see skills/mariadb-sql/tests/README.md
+python3 -m unittest discover -s hooks/scripts/tests -v         # git_guard.py (git commit/push detection) regression tests, run in CI by .github/workflows/hooks-tests.yml
 ```
 
 Releases are cut via GitHub Actions (`.github/workflows/release.yml`), triggered by closing a milestone named `vX.Y.Z`; `.github/scripts/build_release.py` regenerates `CHANGELOG.md` from merged PR titles (parsed as Conventional Commits) and bumps the version in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`. Don't hand-bump those version fields — the workflow does it.
