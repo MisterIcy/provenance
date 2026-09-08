@@ -4,24 +4,17 @@ A [Claude Code](https://claude.com/claude-code) plugin providing skills and agen
 
 ## What's included
 
-### `git-committer`
+| Skill | Summary |
+| --- | --- |
+| `git-committer` | Groups the working tree's pending changes into logically separate commits and writes Conventional Commits-formatted messages for each, with your approval before anything is committed. |
+| `git-committer-setup` | One-time (or refresh) setup that learns your commit style from recent history, so `git-committer` matches your voice. |
+| `pr-description-sync` | Checks an open PR's title/description against its actual diff and fixes it up if it has drifted. |
+| `skill-creator` | Scaffolds and validates new Agent Skills against the [agentskills.io](https://agents.md/) standard. |
+| `subagent-creator` | Scaffolds and reviews Claude Code subagents. |
+| `mariadb-sql` | MariaDB dialect reference for reviewing/tuning SQL. |
+| `phpunit` | PHPUnit reference for writing, running, and debugging tests. |
 
-Turns your working tree into one or more clean, well-scoped commits. It:
-
-1. Inspects `git status`/`git diff` and groups the pending changes into logically separate commits (splitting a single file into hunks when it mixes unrelated edits).
-2. Writes a Conventional Commits-formatted message for each group, in a plain, developer-readable voice.
-3. Shows you the full plan — files and exact commit messages — before touching git, so you approve (or adjust) it first.
-4. Commits each group only after approval.
-
-Trigger it explicitly ("commit these changes", "split this into commits") or just by wrapping up a work session with uncommitted changes.
-
-### `git-committer-setup`
-
-One-time (or refresh) setup that samples your recent commit history and writes a personalized style profile (`.claude/git-committer-style.md`) so `git-committer` matches your actual voice instead of a generic default. Run it explicitly, e.g. "learn my commit style" or `/provenance:git-committer-setup`.
-
-### `skill-creator`
-
-A meta-skill for scaffolding and validating new Agent Skills — following the open [agentskills.io](https://agents.md/) standard, with extra guidance for Claude Code-specific frontmatter. Use it when you want to create a new `SKILL.md` or review/fix an existing one.
+See the [wiki](https://github.com/MisterIcy/provenance/wiki/Skills) for a full description of each skill.
 
 ## Installing
 
@@ -30,8 +23,9 @@ Add this repository as a plugin marketplace source in Claude Code and install th
 ## Repository layout
 
 ```
-skills/                    # user-facing skills (git-committer, git-committer-setup, skill-creator)
-agents/                    # subagents invoked by the git-committer skill
+skills/                    # user-facing skills (see the wiki for the full list)
+agents/                    # subagents invoked by the skills above
+monitors/                  # background monitors started automatically when the plugin is enabled
 .claude-plugin/            # plugin/marketplace manifests
 .github/workflows/         # release automation (milestone-triggered)
 ```
