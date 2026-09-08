@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-08
+
+### Added
+- **phpunit:** Add PHPUnit skill with version 9-13 reference docs and evals ([#23](https://github.com/MisterIcy/provenance/pull/23))
+
+### Fixed
+- **hooks:** Stop git_guard.py false-triggering on multi-line commands ([#22](https://github.com/MisterIcy/provenance/pull/22))
+
 ## [0.5.0] - 2026-09-07
 
 ### Added
@@ -51,7 +59,8 @@ _No notable changes recorded for this release._
 
 _No notable changes recorded for this release._
 
-[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/MisterIcy/provenance/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/MisterIcy/provenance/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MisterIcy/provenance/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MisterIcy/provenance/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MisterIcy/provenance/compare/v0.3.0...v0.3.1
