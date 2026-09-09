@@ -17,6 +17,17 @@ This is a **Claude Code plugin**: a collection of Agent Skills (`SKILL.md` + sup
 | `agents/commit-change-grouper.md` | Read-only subagent invoked by `git-committer` to propose a commit split |
 | `agents/commit-message-writer.md` | `Read`-only subagent invoked by `git-committer` to write one commit message per group |
 | `agents/pr-drift-analyzer.md` | Read-only subagent invoked by `pr-description-sync` to compare PR description vs. actual changes |
+| `skills/ddd-engineer/` | Domain-Driven-Design engineering orchestrator: intakes a feature/change/bug/Sentry request and drives an 18-agent pipeline (classify → model → implement → test → adversarial review → arbitrate → commit). Contract in `references/pipeline-contract.md` + `references/ticket-schema.md` |
+| `agents/ddd-intake-classifier.md` | Normalizes any raw request into the one DDD ticket schema (stage 1) |
+| `agents/ddd-domain-modeler.md` | Maps the ticket onto the domain in `fit`/`evolve` mode; `evolve` is human-gated (stage 2) |
+| `agents/ddd-implementer.md` | Pure-coordinator: delegates all source edits to the writer squad, writes only the manifest (stage 3) |
+| `agents/ddd-aggregate-writer.md`, `ddd-controller-writer.md`, `ddd-service-writer.md`, `ddd-repository-writer.md`, `ddd-value-object-writer.md`, `ddd-factory-writer.md`, `ddd-event-handler-writer.md`, `ddd-wiring-writer.md` | The eight leaf writers, one DDD artifact type each (aggregate-writer owns the invariant-holding aggregate roots + entities; event-handler-writer owns domain-event classes + their handlers/projections); spawned only by `ddd-implementer` |
+| `agents/ddd-pattern-evaluator.md` | In-loop, single-artifact, read-only pattern reviewer inside the implementer loop |
+| `agents/ddd-invariant-adversary.md`, `ddd-boundary-adversary.md`, `ddd-security-adversary.md`, `ddd-pattern-adversary.md`, `ddd-code-reviewer-adversary.md` | The five parallel final-review adversaries, each writing one `verdicts/*.md` |
+| `agents/ddd-tech-lead-arbiter.md` | Reads all verdicts, returns accept/iterate/escalate; enforces the three-round hard stop (stage 6) |
+| `agents/unit-test-writer.md` | General TDD test author, extended to also serve as the pipeline's DDD-aware test stage (stage 4) |
+| `skills/ddd-squad-charter/` | Reference skill (`user-invocable: false`) preloaded by every ddd-* agent via `skills:` frontmatter — the roster, roles, collaborative-vs-adversarial split, shared permissions/limits, and the two gates |
+| `skills/ddd-squad-coordination/` | Reference skill (`user-invocable: false`) preloaded by the 10 collaborative agents (8 writers + evaluator + implementer) — the artifact-type→writer routing table and the coordination-is-not-authorization rule |
 | `hooks/hooks.json` + `hooks/scripts/check-pr-drift.sh` | Opt-in `PostToolUse` hook (gated by the `pr_sync_enabled` plugin option) that, after a `git push`, asks Claude to run `pr-description-sync` if the branch has an open PR |
 | `hooks/scripts/guard-git-commit.sh`, `hooks/scripts/guard-git-push.sh` | `PreToolUse` hooks on `git commit` / `git push` that force a real permission prompt unless `git_committer_auto_commit` / `git_committer_auto_push` (respectively) is `true` — the actual enforcement point for those two plugin options, independent of skill instructions or the session's permission mode |
 | `.claude-plugin/` | Plugin and marketplace manifests (`plugin.json`, `marketplace.json`) |
