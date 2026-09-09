@@ -190,10 +190,46 @@ export function joinLineContinuations(commandStr: string): string {
   return commandStr.replace(/\\\n/g, "");
 }
 
+// Matches a heredoc redirect's opening marker: `<<`, an optional `-` (for
+// `<<-`, which also permits leading tabs before the closing delimiter), then
+// the delimiter word itself, optionally single- or double-quoted.
+const HEREDOC_START = /<<(-?)\s*(?:'([\w]+)'|"([\w]+)"|([\w]+))/;
+
+// Bash treats a heredoc body as opaque data up to its closing delimiter line
+// — it is never parsed as shell syntax. The tokenizer below has no concept
+// of this, so any quote/paren/backtick/pipe character that happens to appear
+// in heredoc content (e.g. an apostrophe in a code comment) would otherwise
+// be parsed as real shell punctuation, either misrouting segments or, worse,
+// throwing an "unbalanced quote" error that commandInvokes conservatively
+// treats as a match for every subcommand check. Strip heredoc bodies out
+// before tokenizing so their contents can never influence the match result.
+export function stripHeredocs(commandStr: string): string {
+  const lines = commandStr.split("\n");
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = HEREDOC_START.exec(line);
+    out.push(line);
+    i++;
+    if (!match) continue;
+
+    const dashed = match[1] === "-";
+    const delimiter = match[2] ?? match[3] ?? match[4];
+    while (i < lines.length) {
+      const bodyLine = lines[i];
+      const compare = dashed ? bodyLine.replace(/^\t+/, "") : bodyLine;
+      i++;
+      if (compare === delimiter) break;
+    }
+  }
+  return out.join("\n");
+}
+
 export function commandInvokes(commandStr: string, subcommand: string): boolean {
   let segments: string[][];
   try {
-    segments = [...splitSegments(joinLineContinuations(commandStr))];
+    segments = [...splitSegments(joinLineContinuations(stripHeredocs(commandStr)))];
   } catch {
     // Unbalanced quotes etc. - be conservative and treat as a match so the
     // gate still asks rather than silently allowing.
