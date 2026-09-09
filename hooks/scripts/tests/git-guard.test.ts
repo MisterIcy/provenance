@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { commandInvokes } from "../git-guard.ts";
+import { commandInvokes, stripHeredocs } from "../git-guard.ts";
 
 const GUARD = path.join(import.meta.dirname, "..", "git-guard.ts");
 
@@ -111,17 +111,83 @@ describe("commandInvokes — adversarial quoting/substitution forms", () => {
   });
 });
 
-// Documented known limitation: git-guard.ts re-tokenizes the command string
-// line by line with no concept of heredoc bodies, so inert heredoc data that
-// happens to contain the literal words "git push" is scanned as if it were
-// its own command. Not reachable in production — the real command here
-// starts with "cat", not "git push"/"git commit", so hooks.json's matcher
-// never routes it to this guard at all. Documented (not "fixed") so a future
-// change to the matcher layer doesn't silently rely on this being safe.
-describe("commandInvokes — known limitation: heredoc body is not inert", () => {
-  it("treats heredoc body text as a match even though it would never really run", () => {
+// Heredoc bodies are inert data in real bash — never parsed as shell syntax
+// — so stripHeredocs() removes them before tokenizing, and commandInvokes
+// must not be fooled by their contents either way (a literal "git push" in
+// the body isn't a real invocation, and stray punctuation in the body must
+// not corrupt parsing of the real command around it).
+describe("commandInvokes — heredoc bodies are inert", () => {
+  it("does not match literal 'git push' text inside a heredoc body", () => {
     const command = "cat <<'EOF' > msg.txt\ngit push\nEOF";
+    expect(commandInvokes(command, "push")).toBe(false);
+    expect(commandInvokes(command, "commit")).toBe(false);
+  });
+
+  it("does not treat an apostrophe inside a heredoc body as an unbalanced quote", () => {
+    // Regression: a code comment like "let's" inside a heredoc used to throw
+    // TokenizeError (unmatched "'"), which commandInvokes conservatively
+    // treated as a match for every subcommand — turning an unrelated `cat`
+    // + `node` script into a false "git push"/"git commit" approval prompt.
+    const command =
+      "cat <<'EOF' > /tmp/tdz_test.mjs\n" +
+      "// factory created BEFORE const is initialized... but let's mimic real hoisting\n" +
+      "console.log('done');\n" +
+      "EOF\n" +
+      "node /tmp/tdz_test.mjs";
+    expect(commandInvokes(command, "push")).toBe(false);
+    expect(commandInvokes(command, "commit")).toBe(false);
+  });
+
+  it("does not let heredoc body punctuation (parens, pipes, backticks) leak into parsing", () => {
+    const command =
+      "cat <<'EOF' > /tmp/x.js\n" +
+      "const fn = (...args) => `${args | 0}`;\n" +
+      "EOF\n" +
+      "git status";
+    expect(commandInvokes(command, "push")).toBe(false);
+    expect(commandInvokes(command, "commit")).toBe(false);
+  });
+
+  it("still detects a real git push/commit that follows a heredoc", () => {
+    const command = "cat <<'EOF' > msg.txt\nsome body text\nEOF\ngit push origin main";
     expect(commandInvokes(command, "push")).toBe(true);
+  });
+
+  it("still detects a real git push/commit that precedes a heredoc", () => {
+    const command = "git commit -F- <<'EOF'\nsome body text\nEOF";
+    expect(commandInvokes(command, "commit")).toBe(true);
+  });
+
+  it("supports the <<- form with tab-indented closing delimiter", () => {
+    const command = "cat <<-'EOF'\n\tgit push\n\tEOF\nnode script.js";
+    expect(commandInvokes(command, "push")).toBe(false);
+  });
+
+  it("supports an unquoted heredoc delimiter", () => {
+    const command = "cat <<EOF\ngit push\nEOF";
+    expect(commandInvokes(command, "push")).toBe(false);
+  });
+});
+
+describe("stripHeredocs", () => {
+  it("removes a quoted-delimiter heredoc body, including the closing delimiter line", () => {
+    expect(stripHeredocs("cat <<'EOF'\nline one\nline two\nEOF")).toBe("cat <<'EOF'");
+  });
+
+  it("removes an unquoted-delimiter heredoc body", () => {
+    expect(stripHeredocs("cat <<EOF\nline one\nEOF")).toBe("cat <<EOF");
+  });
+
+  it("respects <<- tab-stripping when matching the closing delimiter", () => {
+    expect(stripHeredocs("cat <<-'EOF'\nbody\n\tEOF")).toBe("cat <<-'EOF'");
+  });
+
+  it("leaves non-heredoc content untouched", () => {
+    expect(stripHeredocs("git push origin main")).toBe("git push origin main");
+  });
+
+  it("leaves content after the closing delimiter untouched", () => {
+    expect(stripHeredocs("cat <<'EOF'\nbody\nEOF\ngit push")).toBe("cat <<'EOF'\ngit push");
   });
 });
 
