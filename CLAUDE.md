@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-`provenance` is a **Claude Code plugin** (see `.claude-plugin/plugin.json` / `marketplace.json`), not an application. It has no build step and no compiled artifacts — its content *is* the product: Agent Skills (`SKILL.md` files) and subagent definitions consumed directly by Claude Code at runtime. Changes here are mostly validated by reading/reasoning about the Markdown+frontmatter files, not by running a compiler, with the exception of the executable hook scripts under `hooks/scripts/`, which do have a unit test suite (see below).
+`provenance` is a **Claude Code plugin** (see `.claude-plugin/plugin.json` / `marketplace.json`), not an application. It has no build step and no compiled artifacts — its content *is* the product: Agent Skills (`SKILL.md` files) and subagent definitions consumed directly by Claude Code at runtime. Changes here are mostly validated by reading/reasoning about the Markdown+frontmatter files, not by running a compiler, with the exception of the executable hook scripts under `hooks/scripts/`, which are TypeScript run directly by Bun (no build step — `tsc` is used only for type-checking) and have a Vitest test suite (see below).
 
 ## Commands
 
@@ -13,7 +13,8 @@ There is no build/lint tooling. The executable scripts in the repo are:
 ```bash
 skills/git-committer-setup/scripts/ingest-commits.sh [count]   # dumps last N commits by git user.email for style-profile ingestion
 skills/mariadb-sql/tests/scripts/run-version.sh <version>      # Docker-verified mariadb-sql test harness, one MariaDB milestone version; run-matrix.sh runs all of them — see skills/mariadb-sql/tests/README.md
-python3 -m unittest discover -s hooks/scripts/tests -v         # git_guard.py (git commit/push detection) regression tests, run in CI by .github/workflows/hooks-tests.yml
+bun install && bun run test                                    # hooks/scripts/*.ts (git guard, SQL read-only guard, PR-drift check) Vitest suite, run in CI by .github/workflows/hooks-tests.yml
+bun run typecheck                                              # tsc --noEmit over hooks/scripts/**/*.ts
 ```
 
 Releases are cut via GitHub Actions (`.github/workflows/release.yml`), triggered by closing a milestone named `vX.Y.Z`; `.github/scripts/build_release.py` regenerates `CHANGELOG.md` from merged PR titles (parsed as Conventional Commits) and bumps the version in both `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`. Don't hand-bump those version fields — the workflow does it.
@@ -25,7 +26,7 @@ The plugin ships three skills: two for git workflow automation, plus a meta-skil
 - **`skills/git-committer/`** — the main entry point. `SKILL.md` orchestrates a two-subagent pipeline to turn the working tree into Conventional-Commits-formatted commits:
   1. `agents/commit-change-grouper.md` (read-only, sonnet) — inspects `git status`/`git diff` and proposes how to split pending changes into logical commit groups. It never touches git state.
   2. `agents/commit-message-writer.md` (haiku, `Read`-only) — given one group's diff + rationale, writes a single commit message following `skills/git-committer/references/conventional-commits.md` and either a learned voice profile or `references/style-voice-guidelines.md`.
-  The orchestrating skill (the only actor allowed to run `git add`/`git apply`/`git commit`/`git push`) presents the full multi-commit plan, then executes group-by-group, writing each message to a temp file and committing with `git commit -F`, followed by `git push`. Whether each of those two calls actually needs the user's approval is enforced at the tool-permission layer, not by the skill's own judgment: `hooks/scripts/guard-git-commit.sh` and `hooks/scripts/guard-git-push.sh` are `PreToolUse` hooks (registered in `hooks/hooks.json`) that inspect the `git_committer_auto_commit` / `git_committer_auto_push` plugin options and return an explicit `"ask"` or `"allow"` permission decision for that call, overriding whatever the session's permission mode would otherwise do.
+  The orchestrating skill (the only actor allowed to run `git add`/`git apply`/`git commit`/`git push`) presents the full multi-commit plan, then executes group-by-group, writing each message to a temp file and committing with `git commit -F`, followed by `git push`. Whether each of those two calls actually needs the user's approval is enforced at the tool-permission layer, not by the skill's own judgment: `hooks/scripts/guard-git-commit.sh` and `hooks/scripts/guard-git-push.sh` are thin wrappers (source `require-bun.sh`, then `exec bun` into `hooks/scripts/git-guard.ts`) registered as `PreToolUse` hooks in `hooks/hooks.json`; `git-guard.ts` inspects the `git_committer_auto_commit` / `git_committer_auto_push` plugin options and returns an explicit `"ask"` or `"allow"` permission decision for that call, overriding whatever the session's permission mode would otherwise do. If `bun` isn't on `PATH`, `require-bun.sh` exits 2 (a hard blocking error), not a silent fail-open skip.
 
 - **`skills/git-committer-setup/`** — one-time/refresh companion skill. Runs `ingest-commits.sh` to sample the current author's recent commits and writes a personalized voice profile to `.claude/git-committer-style.md` (gitignored/local, not committed here), which `git-committer` picks up automatically. Only triggers on an explicit user request — never inferred.
 

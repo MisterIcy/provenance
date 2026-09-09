@@ -6,11 +6,11 @@
 # git_committer_auto_commit / guard-git-commit.sh.
 #
 # Command parsing (tokenizing, handling -C/-c, compound commands) lives in
-# git_guard.py so it can't be dodged by shell quoting tricks a regex misses.
+# git-guard.ts so it can't be dodged by shell quoting tricks a regex misses.
 set -uo pipefail
 
-if ! command -v python3 >/dev/null 2>&1; then
-  exit 0
-fi
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+source "$script_dir/require-bun.sh"
+require_bun
 
-python3 "$(dirname "${BASH_SOURCE[0]}")/git_guard.py" push CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_PUSH || exit 0
+exec bun "$script_dir/git-guard.ts" push CLAUDE_PLUGIN_OPTION_GIT_COMMITTER_AUTO_PUSH
